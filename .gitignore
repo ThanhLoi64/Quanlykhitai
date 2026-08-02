@@ -1,0 +1,39 @@
+# Node
+node_modules/
+dist/
+build/
+
+# Environment
+.env
+.env.*
+
+# Prisma
+prisma/*.db
+prisma/*.db-journal
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Cache
+.npm/
+.pnpm-store/
+# Electron build
+apps/desktop/release/
+apps/desktop/dist/
+
+# Build files
+dist/
+build/
+
+# Electron build
+apps/desktop/release/
+apps/desktop/dist/
+apps/desktop/out/
