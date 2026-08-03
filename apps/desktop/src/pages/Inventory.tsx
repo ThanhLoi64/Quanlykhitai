@@ -109,17 +109,17 @@ export default function Inventory() {
     load();
   }, []);
 
-  async function handleDelete(id: number) {
-    if (!window.confirm("Bạn có chắc muốn xóa dòng này?")) return;
+  // async function handleDelete(id: number) {
+  //   if (!window.confirm("Bạn có chắc muốn xóa dòng này?")) return;
 
-    try {
-      await api.delete(`/inventory/${id}`);
-      toast.success("Xóa thành công");
-      load();
-    } catch {
-      toast.error("Xóa thất bại");
-    }
-  }
+  //   try {
+  //     await api.delete(`/inventory/${id}`);
+  //     toast.success("Xóa thành công");
+  //     load();
+  //   } catch {
+  //     toast.error("Xóa thất bại");
+  //   }
+  // }
 
   async function create() {
     if (!productId || !serialNumber) {
