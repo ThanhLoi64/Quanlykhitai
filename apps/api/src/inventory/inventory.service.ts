@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateInventoryDto } from "./dto/create-inventory.dto";
 import { UpdateInventoryDto } from "./dto/update-inventory.dto";
@@ -43,33 +43,44 @@ export class InventoryService {
   });
 }
 
-  create(dto: CreateInventoryDto) {
-  return this.prisma.productDetail.create({
-    data: {
-      serialNumber: dto.serialNumber,
+  async create(dto: CreateInventoryDto) {
+    const existing = await this.prisma.productDetail.findFirst({
+      where: {
+        productId: dto.productId,
+        serialNumber: dto.serialNumber,
+      },
+    });
 
-      status: dto.status || "IN_STOCK",
+    if (existing) {
+      throw new BadRequestException("Số hiệu đã tồn tại vui lòng nhập lại");
+    }
 
-      accessory: dto.accessory,
+    return this.prisma.productDetail.create({
+      data: {
+        serialNumber: dto.serialNumber,
 
-      equipment: dto.equipment,
+        status: dto.status || "IN_STOCK",
 
-      militaryEquipment: dto.militaryEquipment,
+        accessory: dto.accessory,
 
-      product: {
-        connect: {
-          id: dto.productId,
+        equipment: dto.equipment,
+
+        militaryEquipment: dto.militaryEquipment,
+
+        product: {
+          connect: {
+            id: dto.productId,
+          },
+        },
+
+        warehouse: {
+          connect: {
+            id: dto.warehouseId,
+          },
         },
       },
-
-      warehouse: {
-        connect: {
-          id: dto.warehouseId,
-        },
-      },
-    },
-  });
-}
+    });
+  }
 
   async importFromExcel(rows: ImportInventoryItemDto[]) {
     const results: any[] = [];
@@ -117,7 +128,34 @@ export class InventoryService {
     return results;
   }
 
-  update(id: number, dto: UpdateInventoryDto) {
+  async update(id: number, dto: UpdateInventoryDto) {
+    const existingRecord = await this.prisma.productDetail.findUnique({
+      where: { id },
+    });
+
+    if (!existingRecord) {
+      throw new BadRequestException("Bản ghi không tồn tại");
+    }
+
+    const productId = dto.productId ?? existingRecord.productId;
+    const serialNumber = dto.serialNumber ?? existingRecord.serialNumber;
+
+    if (productId && serialNumber) {
+      const duplicate = await this.prisma.productDetail.findFirst({
+        where: {
+          productId,
+          serialNumber,
+          NOT: {
+            id,
+          },
+        },
+      });
+
+      if (duplicate) {
+        throw new BadRequestException("Số hiệu đã tồn tại vui lòng nhập lại");
+      }
+    }
+
     const data: any = {
       serialNumber: dto.serialNumber,
       accessory: dto.accessory,
