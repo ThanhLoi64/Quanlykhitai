@@ -16,7 +16,7 @@ import {
   TextField,
 } from '@mui/material';
 
-const severityOptions = ['Th?p', 'Trung b�nh', 'Cao', 'C?c cao'];
+const severityOptions = ['Thấp', 'Trung bình', 'Cao', 'Cực cao'];
 
 export default function BrokenWatching() {
   const [products, setProducts] = useState<any[]>([]);
@@ -63,7 +63,7 @@ export default function BrokenWatching() {
       setInventories(inventoryRes.data);
       setRepairs(repairRes.data);
     } catch {
-      toast.error('Kh�ng t?i du?c d? li?u. Vui l�ng th? l?i.');
+      toast.error('Không tải được dữ liệu, vui lòng thử lại.');
     }
   }
 
@@ -109,7 +109,7 @@ export default function BrokenWatching() {
 
   async function submit() {
     if (!productId || !productDetailId) {
-      toast.error('Vui l�ng ch?n t�n v� s? hi?u');
+      toast.error('Vui lòng chọn tên và số hiệu');
       return;
     }
 
@@ -127,28 +127,28 @@ export default function BrokenWatching() {
 
       if (editId) {
         await api.patch(`/repairs/${editId}`, payload);
-        toast.success('C?p nh?t th�ng tin s?a ch?a th�nh c�ng');
+        toast.success('Cập nhật thông tin sữa chữa thành công');
       } else {
         await api.post('/repairs', payload);
-        toast.success('Th�m h? so s?a ch?a th�nh c�ng');
+        toast.success('Thêm hồ sơ sửa chữa thành công');
       }
 
       closeModal();
       loadData();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Luu d? li?u th?t b?i');
+      toast.error(err.response?.data?.message || 'Lưu dữ liệu thất bại');
     }
   }
 
   async function handleDelete(id: number) {
-    if (!window.confirm('B?n c� ch?c mu?n x�a h? so n�y?')) return;
+    if (!window.confirm('Bạn có chắc muốn xóa hồ sơ này?')) return;
 
     try {
        await api.delete(`/repairs/${id}`);
-      toast.success('XXa h? so s?a ch?a thnh cng');
+      toast.success('Xóa hồ sơ sửa chữa thành công');
       loadData();
     } catch {
-      toast.error('X�a th?t b?i');
+      toast.error('Xóa thất bại');
     }
   }
 
@@ -172,29 +172,29 @@ export default function BrokenWatching() {
 
   const columns: GridColDef[] = [
     { field: 'stt', headerName: 'STT', width: 70 },
-    { field: 'createdAt', headerName: 'Ng�y ghi nh?n', width: 140 },
-    { field: 'productName', headerName: 'T�n', flex: 1, minWidth: 160 },
-    { field: 'serialNumber', headerName: 'S? hi?u', flex: 1, minWidth: 140 },
-    { field: 'unit', headerName: '�on v? t�nh', width: 120 },
-    { field: 'damageStatus', headerName: 'T�nh tr?ng', flex: 1, minWidth: 160 },
-    { field: 'repairStartDate', headerName: 'Ng�y di s?a', width: 140 },
-    { field: 'severity', headerName: 'M?c d?', width: 120 },
-    { field: 'repairUnit', headerName: '�on v? s?a ch?a', flex: 1, minWidth: 180 },
-    { field: 'receivedDate', headerName: 'Ng�y nh?n v?', width: 140 },
-    { field: 'note', headerName: 'Nh?n x�t', flex: 1, minWidth: 200 },
+    { field: 'createdAt', headerName: 'Ngày ghi nhận', width: 140 },
+    { field: 'productName', headerName: 'Tên', flex: 1, minWidth: 160 },
+    { field: 'serialNumber', headerName: 'Số hiệu', flex: 1, minWidth: 140 },
+    { field: 'unit', headerName: 'Đơn vị tính', width: 120 },
+    { field: 'damageStatus', headerName: 'Tình trạng', flex: 1, minWidth: 160 },
+    { field: 'repairStartDate', headerName: 'Ngày đi sửa', width: 140 },
+    { field: 'severity', headerName: 'Mức độ', width: 120 },
+    { field: 'repairUnit', headerName: 'Đơn vị sửa chữa', flex: 1, minWidth: 180 },
+    { field: 'receivedDate', headerName: 'Ngày nhận việc', width: 140 },
+    { field: 'note', headerName: 'Nhận xét', flex: 1, minWidth: 200 },
     {
       field: 'status',
-      headerName: 'Tr?ng th�i kho',
+      headerName: 'Trạng thái kho',
       width: 140,
       renderCell: (params) => (
         <Chip
           size="small"
           label={
             params.value === 'REPAIR'
-              ? 'S?a ch?a'
+              ? 'Sửa chữa'
               : params.value === 'IN_STOCK'
               ? 'Trong kho'
-              : '�� c?p'
+              : 'Đã cập nhật'
           }
           color={
             params.value === 'REPAIR'
@@ -208,17 +208,17 @@ export default function BrokenWatching() {
     },
     {
       field: 'action',
-      headerName: 'Thao t�c',
+      headerName: 'Thao tác',
       width: 240,
       sortable: false,
       filterable: false,
       renderCell: (params) => (
         <Stack direction="row" spacing={1}>
           <Button size="small" variant="contained" onClick={() => openEditModal(params.row.raw)}>
-            S?a
+            Sửa
           </Button>
           <Button size="small" color="error" variant="outlined" onClick={() => handleDelete(params.row.raw.id)}>
-            X�a
+            Xóa
           </Button>
         </Stack>
       ),
@@ -229,11 +229,11 @@ export default function BrokenWatching() {
     <div className="space-y-6 p-5">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Theo d�i hu h?ng v� s?a ch?a</h1>
-          <p className="text-slate-500">Nh?p v� qu?n l� th�ng tin s?a ch?a, t? d?ng c?p nh?t tr?ng th�i kho.</p>
+          <h1 className="text-2xl font-bold">Theo dõi hư hỏng và sửa chữa</h1>
+          <p className="text-slate-500">Nhập và quản lý thông tin sửa chữa, tự động cập nhật trạng thái kho.</p>
         </div>
         <Button variant="contained" size="large" onClick={openCreateModal}>
-          Th�m h? so s?a ch?a
+          Thêm hồ sơ sửa chữa
         </Button>
       </div>
 
@@ -248,7 +248,7 @@ export default function BrokenWatching() {
       </Paper>
 
       <Dialog open={open} onClose={closeModal} fullWidth maxWidth="lg">
-        <DialogTitle>{editId ? 'C?p nh?t h? so s?a ch?a' : 'Th�m h? so s?a ch?a'}</DialogTitle>
+        <DialogTitle>{editId ? 'Cập nhật hồ sơ sửa chữa' : 'Thêm hồ sơ sửa chữa'}</DialogTitle>
         <DialogContent>
           <Box className="grid gap-4 mt-3 md:grid-cols-2">
             <Autocomplete
@@ -259,10 +259,10 @@ export default function BrokenWatching() {
                 setProductDetailId('');
               }}
               getOptionLabel={(option) => option.name || ''}
-              renderInput={(params) => <TextField {...params} label="T�n" size="small" />}
+              renderInput={(params) => <TextField {...params} label="Tên" size="small" />}
             />
             <TextField
-              label="�on v? t�nh"
+              label="Đơn vị tính"
               size="small"
               value={selectedProduct?.unit || ''}
               disabled
@@ -272,18 +272,18 @@ export default function BrokenWatching() {
               value={availableDetails.find((item) => String(item.id) === productDetailId) || null}
               onChange={(_, newValue) => setProductDetailId(newValue ? String(newValue.id) : '')}
               getOptionLabel={(option) => option.serialNumber || ''}
-              renderInput={(params) => <TextField {...params} label="S? hi?u" size="small" />}
+              renderInput={(params) => <TextField {...params} label="Số hiệu" size="small" />}
               disabled={!productId}
             />
             <TextField
-              label="T�nh tr?ng h?ng"
+              label="Tình trạng hư hỏng"
               size="small"
               value={damageStatus}
               onChange={(e) => setDamageStatus(e.target.value)}
               fullWidth
             />
             <TextField
-              label="Nguy�n nh�n"
+              label="Nguyên nhân"
               size="small"
               value={cause}
               onChange={(e) => setCause(e.target.value)}
@@ -305,17 +305,17 @@ export default function BrokenWatching() {
               options={severityOptions}
               value={severity}
               onChange={(_, newValue) => setSeverity(newValue || '')}
-              renderInput={(params) => <TextField {...params} label="M?c d?" size="small" />}
+              renderInput={(params) => <TextField {...params} label="Mức độ" size="small" />}
             />
             <TextField
-              label="�on v? / ngu?i nh?n s?a ch?a"
+              label="Đơn vị / người nhận sửa chữa"
               size="small"
               value={repairUnit}
               onChange={(e) => setRepairUnit(e.target.value)}
               fullWidth
             />
             <TextField
-              label="Ng�y nh?n v?"
+              label="Ngày nhận việc"
               size="small"
               variant="outlined"
               type="date"
@@ -328,7 +328,7 @@ export default function BrokenWatching() {
   }}
             />
             <TextField
-              label="Nh?n x�t t�m t?t"
+              label="Nhận xét tổng thể"
               size="small"
               value={note}
               onChange={(e) => setNote(e.target.value)}
@@ -337,7 +337,7 @@ export default function BrokenWatching() {
               fullWidth
             />
             <TextField
-              label="Ng�y t?o"
+              label="Ngày tạo"
               size="small"
               type="date"
               value={today}
@@ -351,9 +351,9 @@ export default function BrokenWatching() {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeModal}>H?y</Button>
+          <Button onClick={closeModal}>Hủy</Button>
           <Button variant="contained" onClick={submit}>
-            {editId ? 'C?p nh?t' : 'Luu'}
+            {editId ? 'Cập nhật' : 'Lưu'}
           </Button>
         </DialogActions>
       </Dialog>
