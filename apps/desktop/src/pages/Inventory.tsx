@@ -127,6 +127,17 @@ export default function Inventory() {
       return;
     }
 
+    const duplicate = items.find(
+      (item) =>
+        item.productId === Number(productId) &&
+        item.serialNumber?.trim() === serialNumber.trim(),
+    );
+
+    if (duplicate) {
+      toast.error("Số hiệu đã tồn tại vui lòng nhập lại");
+      return;
+    }
+
     try {
       await api.post("/inventory", {
         productId: Number(productId),
@@ -142,8 +153,8 @@ export default function Inventory() {
       setOpen(false); // đóng modal
 
       load();
-    } catch {
-      toast.error("Không thể nhập kho");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Không thể nhập kho");
     }
   }
 
@@ -171,6 +182,18 @@ export default function Inventory() {
 
     try {
       if (editId) {
+        const duplicate = items.find(
+          (item) =>
+            item.id !== editId &&
+            item.productId === Number(productId) &&
+            item.serialNumber?.trim() === serialNumber.trim(),
+        );
+
+        if (duplicate) {
+          toast.error("Số hiệu đã tồn tại vui lòng nhập lại");
+          return;
+        }
+
         await api.patch(`/inventory/${editId}`, {
           productId: Number(productId),
           warehouseId: Number(warehouseId),
@@ -188,8 +211,8 @@ export default function Inventory() {
       setSerialNumber("");
       setOpen(false);
       load();
-    } catch {
-      toast.error("Không thể lưu thay đổi");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Không thể lưu thay đổi");
     }
   }
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
