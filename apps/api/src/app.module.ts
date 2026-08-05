@@ -11,6 +11,7 @@ import { OwnerModule } from './owner/owner.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { ProductDetailModule } from './product-detail/product-detail.module';
 import { WarehouseModule } from './warehouse/warehouse.module';
+import { RepairModule } from './repair/repair.module';
 
 
 
@@ -24,7 +25,8 @@ import { WarehouseModule } from './warehouse/warehouse.module';
     OwnerModule,
     InventoryModule,
     ProductDetailModule,
-    WarehouseModule
+    WarehouseModule,
+    RepairModule
   ],
 
   controllers: [],

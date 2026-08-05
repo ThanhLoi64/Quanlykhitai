@@ -57,8 +57,20 @@ export default function Inventory() {
       renderCell: (params) => (
         <Chip
           size="small"
-          color={params.value === "IN_STOCK" ? "success" : "error"}
-          label={params.value === "IN_STOCK" ? "Trong kho" : "Đã cấp"}
+          color={
+            params.value === "IN_STOCK"
+              ? "success"
+              : params.value === "REPAIR"
+              ? "warning"
+              : "error"
+          }
+          label={
+            params.value === "IN_STOCK"
+              ? "Trong kho"
+              : params.value === "REPAIR"
+              ? "Sửa chữa"
+              : "Đã cấp"
+          }
         />
       ),
     },
