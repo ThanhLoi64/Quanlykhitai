@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { InventoryService } from './inventory.service';
 import { CreateInventoryDto } from './dto/create-inventory.dto';
 import { UpdateInventoryDto } from './dto/update-inventory.dto';
+import { ImportInventoryItemDto } from './dto/import-inventory.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 
@@ -24,6 +25,11 @@ export class InventoryController {
   @Post()
   create(@Body() dto: CreateInventoryDto) {
     return this.service.create(dto);
+  }
+
+  @Post("import")
+  import(@Body() rows: ImportInventoryItemDto[]) {
+    return this.service.importFromExcel(rows);
   }
 
   @Patch(":id")

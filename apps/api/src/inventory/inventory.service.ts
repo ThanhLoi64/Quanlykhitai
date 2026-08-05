@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateInventoryDto } from "./dto/create-inventory.dto";
 import { UpdateInventoryDto } from "./dto/update-inventory.dto";
+import { ImportInventoryItemDto } from "./dto/import-inventory.dto";
 
 @Injectable()
 export class InventoryService {
@@ -69,6 +70,52 @@ export class InventoryService {
     },
   });
 }
+
+  async importFromExcel(rows: ImportInventoryItemDto[]) {
+    const results: any[] = [];
+
+    for (const row of rows) {
+      if (!row.serialNumber) {
+        continue;
+      }
+
+      let productId = row.productId;
+      if (!productId && row.productName) {
+        const product = await this.prisma.product.findFirst({
+          where: { name: { equals: row.productName, mode: "insensitive" } },
+        });
+        productId = product?.id;
+      }
+
+      let warehouseId = row.warehouseId;
+      if (!warehouseId && row.warehouseName) {
+        const warehouse = await this.prisma.warehouse.findFirst({
+          where: { name: { equals: row.warehouseName, mode: "insensitive" } },
+        });
+        warehouseId = warehouse?.id;
+      }
+
+      if (!productId || !warehouseId) {
+        continue;
+      }
+
+      const created = await this.prisma.productDetail.create({
+        data: {
+          serialNumber: row.serialNumber,
+          accessory: row.accessory,
+          equipment: row.equipment,
+          militaryEquipment: row.militaryEquipment,
+          status: row.status || "IN_STOCK",
+          product: { connect: { id: productId } },
+          warehouse: { connect: { id: warehouseId } },
+        },
+      });
+
+      results.push(created);
+    }
+
+    return results;
+  }
 
   update(id: number, dto: UpdateInventoryDto) {
     const data: any = {
