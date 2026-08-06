@@ -28,6 +28,7 @@ export default function Owner() {
   }, []);
 
   const columns: GridColDef[] = [
+    { field: "id", headerName: "ID", width: 90 },
     { field: "stt", headerName: "STT", width: 70 },
     { field: "fullName", headerName: "Họ tên", flex: 1.2 },
     { field: "rank", headerName: "Cấp bậc", flex: 1 },

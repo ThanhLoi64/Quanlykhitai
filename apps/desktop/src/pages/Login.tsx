@@ -39,31 +39,67 @@ export default function Login() {
     } catch (err: any) {
       toast.dismiss(toastId);
 
-      toast.error(err.response?.data?.message ?? "Sai tài khoản hoặc mật khẩu");
+      // Không kết nối được server
+      if (!err.response) {
+        toast.error(
+          "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng hoặc thử lại sau.",
+        );
+        return;
+      }
+
+      const status = err.response.status;
+
+      switch (status) {
+        case 400:
+          toast.error(err.response.data?.message || "Dữ liệu không hợp lệ.");
+          break;
+
+        case 401:
+          toast.error("Sai tên đăng nhập hoặc mật khẩu.");
+          break;
+
+        case 403:
+          toast.error("Bạn không có quyền thực hiện thao tác này.");
+          break;
+
+        case 404:
+          toast.error("Không tìm thấy máy chủ hoặc API.");
+          break;
+
+        case 500:
+          toast.error("Hệ thống đang gặp sự cố. Vui lòng thử lại sau ít phút.");
+          break;
+
+        default:
+          toast.error(
+            err.response.data?.message || "Đã xảy ra lỗi. Vui lòng thử lại.",
+          );
+          break;
+      }
     }
   }
 
   return (
-   <Box
-  sx={{
-    minHeight: "100vh",
-    backgroundImage: `url(${loginBg})`,
-    backgroundSize: "cover",
-    backgroundPosition: "center",
-    backgroundRepeat: "no-repeat",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    p: 2,
-    position: "relative",
+    <Box
+      sx={{
+        minHeight: "100vh",
+        backgroundImage: `url(${loginBg})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        p: 2,
+        position: "relative",
 
-    "&::before": {
-      content: '""',
-      position: "absolute",
-      inset: 0,
-    },
-  }}
->
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          inset: 0,
+        },
+      }}
+    >
       <Paper
         elevation={8}
         sx={{
@@ -153,7 +189,7 @@ export default function Login() {
             backdropFilter: "blur(10px)",
             backgroundColor: "red",
             "&:hover": {
-             background: "rgba(153, 27, 27, 0.7)",
+              background: "rgba(153, 27, 27, 0.7)",
             },
           }}
           onClick={login}

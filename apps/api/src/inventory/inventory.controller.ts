@@ -18,7 +18,6 @@ import { LogService } from '../log/log.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 
-
 @ApiBearerAuth()
 @ApiTags('Inventory')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -46,6 +45,7 @@ export class InventoryController {
       productId: created.productId,
       serialNumber: created.serialNumber,
       warehouseId: created.warehouseId,
+
     });
     return created;
   }
@@ -67,11 +67,12 @@ export class InventoryController {
     @Body() dto: UpdateInventoryDto,
   ) {
     const updated = await this.service.update(+id, dto);
-    await this.logService.create(req.user, 'Cập nhật kho', {
-      id: +id,
-      productId: updated.productId,
-      serialNumber: updated.serialNumber,
-    });
+
+    await this.logService.create(
+      req.user,
+      'Cập nhật kho',
+      `Sản phẩm: "${updated.product.name}" | Serial: "${updated.serialNumber}" | Kho: "${updated.warehouse?.name ?? 'Chưa có'}"`,
+    );
     return updated;
   }
 

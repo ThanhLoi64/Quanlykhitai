@@ -31,6 +31,11 @@ export default function Inventory() {
   });
   const columns: GridColDef[] = [
     {
+      field: "id",
+      headerName: "ID",
+      width: 90,
+    },
+    {
       field: "stt",
       headerName: "STT",
       width: 80,

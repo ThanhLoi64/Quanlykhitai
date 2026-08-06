@@ -97,7 +97,7 @@ async update(
     dto
   );
 
-  await this.logService.create(req.user, 'Cập nhật danh mục', `Tên: ${dto.name}`);
+  await this.logService.create(req.user, 'Cập nhật danh mục', `id: ${id} | Tên: ${dto.name}`);
 
   return updated;
 

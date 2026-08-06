@@ -17,6 +17,7 @@ import Owner from "../pages/Owner";
 import Inventory from "../pages/Inventory";
 import Warehouse from "../pages/Warehouse";
 import BrockenWhatching from "../pages/BrockenWatching";
+import Information from "../pages/Infomation";
 
 
 
@@ -48,6 +49,7 @@ return (
         <Route path="/warehouses" element={<Warehouse />} />
         <Route path="/logs" element={<Log />} />
         <Route path="/broken-watching" element={<BrockenWhatching />} />
+        <Route path="/about" element={<Information />} />
 
       </Route>
 

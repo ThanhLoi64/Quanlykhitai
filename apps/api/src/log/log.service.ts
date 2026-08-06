@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -54,5 +55,23 @@ export class LogService {
     return this.prisma.appLog.findMany({
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  async deleteAllWithPassword(username: string, password: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { username },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Mật khẩu không đúng');
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Mật khẩu không đúng');
+    }
+
+    return this.prisma.appLog.deleteMany({});
   }
 }

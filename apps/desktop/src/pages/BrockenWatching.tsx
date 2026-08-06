@@ -193,10 +193,11 @@ export default function BrokenWatching() {
   }));
 
   const columns: GridColDef[] = [
+    { field: "id", headerName: "ID", width: 90 },
     { field: "stt", headerName: "STT", width: 70 },
     { field: "createdAt", headerName: "Ngày ghi nhận", width: 140 },
     { field: "productName", headerName: "Tên", flex: 1, minWidth: 180 },
-    { field: "serialNumber", headerName: "Số hiệu", flex: 1, minWidth: 160 },
+    { field: "serialNumber", headerName: "Số hiệu", flex: 1, minWidth: 100 },
     { field: "unit", headerName: "Đơn vị tính", width: 130 },
     {
       field: "remainingStatus",
@@ -437,7 +438,7 @@ export default function BrokenWatching() {
                   Thông tin cơ bản
                 </h3>
 
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                   {/* Ảnh */}
 
                   <div className="flex justify-center">
@@ -474,30 +475,42 @@ export default function BrokenWatching() {
 
                   {/* Thông tin */}
 
-                  <div className="lg:col-span-2 space-y-4">
-                    <div className="rounded-lg border bg-slate-50 p-4">
-                      <p className="text-xs uppercase tracking-wider text-slate-500">
-                        Tên khí tài
-                      </p>
+                  <div className=" rounded-xl bg-white p-6 shadow-sm">
+                    <h3 className="mb-5 border-b pb-2 text-lg font-semibold">
+                      Thông tin khí tài
+                    </h3>
 
-                      <p className="mt-2 text-xl font-bold text-slate-800">
-                        {detailRecord?.productDetail?.product?.name || "-"}
-                      </p>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-3 items-center">
+                        <span className="font-medium text-slate-500">
+                          Tên khí tài
+                        </span>
+
+                        <span className="col-span-2 text-xl font-bold text-slate-800">
+                          {detailRecord?.productDetail?.product?.name || "-"}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-3 items-center">
+                        <span className="font-medium text-slate-500">
+                          Số hiệu
+                        </span>
+
+                        <span className="col-span-2 text-slate-700">
+                          {detailRecord?.productDetail?.serialNumber || "-"}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-3 items-center">
+                        <span className="font-medium text-slate-500">
+                          Đơn vị tính
+                        </span>
+
+                        <span className="col-span-2 text-slate-700">
+                          {detailRecord?.productDetail?.product?.unit || "-"}
+                        </span>
+                      </div>
                     </div>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <DetailItem
-                        label="Số hiệu"
-                        value={detailRecord?.productDetail?.serialNumber}
-                      />
-
-                      <DetailItem
-                        label="Đơn vị tính"
-                        value={detailRecord?.productDetail?.product?.unit}
-                      />
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-2"></div>
                   </div>
                 </div>
               </div>
@@ -509,10 +522,13 @@ export default function BrokenWatching() {
                   Thông tin sửa chữa
                 </h3>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <DetailItem
-                    label="Trạng thái"
-                    value={
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 items-center">
+                    <span className="font-medium text-slate-500">
+                      Trạng thái
+                    </span>
+
+                    <span className="col-span-2">
                       <span
                         className={`rounded-full px-3 py-1 text-sm font-semibold ${
                           detailRecord?.productDetail?.status === "REPAIR"
@@ -524,54 +540,77 @@ export default function BrokenWatching() {
                           ? "Đang sửa chữa"
                           : "Trong kho"}
                       </span>
-                    }
-                  />
+                    </span>
+                  </div>
 
-                  <DetailItem
-                    label="Ngày ghi nhận"
-                    value={
-                      detailRecord?.createdAt
+                  <div className="grid grid-cols-3 items-center">
+                    <span className="font-medium text-slate-500">
+                      Ngày ghi nhận
+                    </span>
+
+                    <span className="col-span-2 text-slate-700">
+                      {detailRecord?.createdAt
                         ? new Date(detailRecord.createdAt).toLocaleDateString(
                             "vi-VN",
                           )
-                        : "-"
-                    }
-                  />
+                        : "-"}
+                    </span>
+                  </div>
 
-                  <DetailItem
-                    label="Tình trạng hư hỏng"
-                    value={detailRecord?.damageStatus}
-                  />
+                  <div className="grid grid-cols-3 items-center">
+                    <span className="font-medium text-slate-500">
+                      Tình trạng hư hỏng
+                    </span>
 
-                  <DetailItem label="Mức độ" value={detailRecord?.severity} />
+                    <span className="col-span-2 text-slate-700">
+                      {detailRecord?.damageStatus || "-"}
+                    </span>
+                  </div>
 
-                  <DetailItem
-                    label="Ngày đi sửa"
-                    value={
-                      detailRecord?.repairStartDate
+                  <div className="grid grid-cols-3 items-center">
+                    <span className="font-medium text-slate-500">Mức độ</span>
+
+                    <span className="col-span-2 text-slate-700">
+                      {detailRecord?.severity || "-"}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 items-center">
+                    <span className="font-medium text-slate-500">
+                      Ngày đi sửa
+                    </span>
+
+                    <span className="col-span-2 text-slate-700">
+                      {detailRecord?.repairStartDate
                         ? new Date(
                             detailRecord.repairStartDate,
                           ).toLocaleDateString("vi-VN")
-                        : "-"
-                    }
-                  />
+                        : "-"}
+                    </span>
+                  </div>
 
-                  <DetailItem
-                    label="Ngày nhận việc"
-                    value={
-                      detailRecord?.receivedDate
+                  <div className="grid grid-cols-3 items-center">
+                    <span className="font-medium text-slate-500">
+                      Ngày nhận việc
+                    </span>
+
+                    <span className="col-span-2 text-slate-700">
+                      {detailRecord?.receivedDate
                         ? new Date(
                             detailRecord.receivedDate,
                           ).toLocaleDateString("vi-VN")
-                        : "-"
-                    }
-                  />
+                        : "-"}
+                    </span>
+                  </div>
 
-                  <div className="md:col-span-2">
-                    <DetailItem
-                      label="Đơn vị sửa chữa"
-                      value={detailRecord?.repairUnit}
-                    />
+                  <div className="grid grid-cols-3 items-center">
+                    <span className="font-medium text-slate-500">
+                      Đơn vị sửa chữa
+                    </span>
+
+                    <span className="col-span-2 text-slate-700">
+                      {detailRecord?.repairUnit || "-"}
+                    </span>
                   </div>
                 </div>
               </div>

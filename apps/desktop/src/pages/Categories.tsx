@@ -99,7 +99,7 @@ export default function Categories() {
     {
       field: "id",
       headerName: "ID",
-      width: 80,
+      width: 90,
     },
     {
       field: "name",

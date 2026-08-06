@@ -10,9 +10,13 @@ import {
   LogOut,
   Menu,
   ChevronLeft,
+  Info,
+  ClockAlert,
+  ListCheck,
 } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 import LoginStatus from "../components/Loginstatus";
+
 
 export default function Layout() {
   const [collapsed, setCollapsed] = useState(false);
@@ -108,16 +112,20 @@ export default function Layout() {
             {!collapsed && <span>Danh sách Quân nhân</span>}
           </NavLink>
           <NavLink to="/warehouses" className={menuClass}>
-            <Warehouse size={20} />
+            <ListCheck size={20} />
             {!collapsed && <span>Danh sách kho</span>}
           </NavLink>
           <NavLink to="/broken-watching" className={menuClass}>
-            <Warehouse size={30} />
+            <ClockAlert size={30} />
             {!collapsed && <span>Theo dõi hư hỏng - sửa chữa</span>}
           </NavLink>
           <NavLink to="/logs" className={menuClass}>
             <Activity size={20} />
             {!collapsed && <span>Nhật ký hệ thống</span>}
+          </NavLink>
+          <NavLink to="/about" className={menuClass}>
+            <Info size={20} />
+            {!collapsed && <span>Thông tin hệ thống</span>}
           </NavLink>
 
           <button
@@ -127,13 +135,13 @@ export default function Layout() {
             <LogOut size={20} />
             {!collapsed && <span>Đăng xuất</span>}
           </button>
-          <div className=" text-center text-[0.7rem] text-slate-500 ">
+          {/* <div className=" text-center text-[0.7rem] text-slate-500 ">
             <span>
               {!collapsed && (
                 <span> @ 2026 Quan Ly Khi Tai. All rights reserved.</span>
               )}
             </span>
-          </div>
+          </div> */}
         </nav>
       </aside>
 

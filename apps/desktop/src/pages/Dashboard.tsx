@@ -14,7 +14,10 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import LogComponent from "../components/LogComponent";
+import { Bell } from "lucide-react";
+import { Menu, MenuItem, Badge, IconButton } from "@mui/material";
 
 export default function Dashboard() {
   const [products, setProducts] = useState(0);
@@ -23,7 +26,11 @@ export default function Dashboard() {
   const [chartData, setChartData] = useState<any[]>([]);
   const [latestProducts, setLatestProducts] = useState<any[]>([]);
   const [inventory, setInventory] = useState(0);
+  const [repairs, setRepairs] = useState(0);
   const [warehouseChart, setWarehouseChart] = useState<any[]>([]);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     api.get("/products").then((res) => {
@@ -71,6 +78,9 @@ export default function Dashboard() {
     api.get("/inventory/warehouse-summary").then((res) => {
       setWarehouseChart(res.data);
     });
+     api.get("/repairs").then((res) => {
+      setRepairs(res.data.length);
+    });
   }, []);
 
   const COLORS = [
@@ -82,16 +92,102 @@ export default function Dashboard() {
     "#0891b2",
     "#ca8a04",
   ];
+  async function loadNotifications() {
+    try {
+      const res = await api.get("/logs");
+
+      const latest = res.data
+        .sort(
+          (a: any, b: any) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        )
+        .slice(0, 5);
+
+      setNotifications(latest);
+    } catch {}
+  }
+  const handleOpen = async (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+    await loadNotifications();
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
 
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-slate-800">Dashboard</h1>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-800">Dashboard</h1>
 
-        <p className="text-slate-500 mt-2">
-          Tổng quan hệ thống quản lý khí tài trang bị
-        </p>
+          <p className="text-slate-500 mt-2">
+            Tổng quan hệ thống quản lý khí tài trang bị
+          </p>
+        </div>
+
+        <Badge badgeContent={notifications.length} color="error">
+          <IconButton onClick={handleOpen}>
+            <Bell size={22} />
+          </IconButton>
+        </Badge>
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={handleClose}
+          slotProps={{
+            paper: {
+              sx: {
+                width: 380,
+                maxHeight: 450,
+                mt: 1,
+                borderRadius: 3,
+              },
+            },
+          }}
+        >
+          {notifications.length === 0 ? (
+            <MenuItem>Không có thông báo.</MenuItem>
+          ) : (
+            notifications.map((log) => (
+              <MenuItem
+                key={log.id}
+                sx={{
+                  whiteSpace: "normal",
+                  alignItems: "flex-start",
+                  py: 1.5,
+                }}
+              >
+                <div>
+                  <div className="font-semibold text-blue-600">
+                    {log.action}
+                  </div>
+
+                  <div className="text-sm">{log.detail}</div>
+
+                  <div className="text-xs text-gray-500 mt-1">
+                    {new Date(log.createdAt).toLocaleString("vi-VN")}
+                  </div>
+                </div>
+              </MenuItem>
+            ))
+          )}
+
+          <MenuItem
+            onClick={() => {
+              navigate("/logs");
+              handleClose();
+            }}
+            sx={{
+              justifyContent: "center",
+              fontWeight: "bold",
+              color: "#1976d2",
+            }}
+          >
+            Xem tất cả
+          </MenuItem>
+        </Menu>
       </div>
       {/* Welcome */}
       <div className="bg-white rounded-xl shadow-sm border p-6">
@@ -106,7 +202,7 @@ export default function Dashboard() {
         </p>
       </div>
       {/* Statistic Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
         <Link to="/products">
           <div
             className="bg-white rounded-xl shadow-sm border p-6
@@ -199,6 +295,29 @@ export default function Dashboard() {
             </div>
           </div>
         </Link>
+         <Link to="/broken-watching">
+          <div
+            className="bg-white rounded-xl shadow-sm border p-6
+      cursor-pointer
+      transition-all duration-200 ease-out
+      hover:-translate-y-1 hover:shadow-lg
+      active:translate-y-0 active:scale-95"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-500 text-sm">Tổng sửa chữa</p>
+
+                <h2 className="text-4xl font-bold text-orange-500 mt-2">
+                  {repairs}
+                </h2>
+              </div>
+
+              <div className="bg-orange-100 p-4 rounded-full">
+                <Package size={32} className="text-orange-600" />
+              </div>
+            </div>
+          </div>
+        </Link>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Biểu đồ */}
@@ -271,83 +390,67 @@ export default function Dashboard() {
 
         {/* Biểu đồ tròn */}
 
-       <div className="bg-white rounded-xl shadow-sm border p-6">
-  <h2 className="text-xl font-bold mb-5">
-    Tỷ lệ vũ khí theo đầu mối
-  </h2>
+        <div className="bg-white rounded-xl shadow-sm border p-6">
+          <h2 className="text-xl font-bold mb-5">Tỷ lệ vũ khí theo đầu mối</h2>
 
-  <div className="flex items-center">
+          <div className="flex items-center">
+            <div className="w-2/3 h-[350px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={warehouseChart}
+                    dataKey="total"
+                    nameKey="warehouseName"
+                    outerRadius={110}
+                    label={({ percent }) =>
+                      `${((percent ?? 0) * 100).toFixed(1)}%`
+                    }
+                  >
+                    {warehouseChart.map((_: any, index: number) => (
+                      <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
 
-    <div className="w-2/3 h-[350px]">
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
 
-          <Pie
-            data={warehouseChart}
-            dataKey="total"
-            nameKey="warehouseName"
-            outerRadius={110}
-            label={({ percent }) =>
-              `${((percent ?? 0) * 100).toFixed(1)}%`
-            }
-          >
-            {warehouseChart.map((_: any, index: number) => (
-              <Cell
-                key={index}
-                fill={COLORS[index % COLORS.length]}
-              />
-            ))}
-          </Pie>
+            {/* Chú thích */}
 
-          <Tooltip />
+            <div className="w-1/3 space-y-3">
+              {warehouseChart.map((item: any, index: number) => (
+                <div
+                  key={item.warehouseId}
+                  className="flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-4 h-4 rounded"
+                      style={{
+                        backgroundColor: COLORS[index % COLORS.length],
+                      }}
+                    />
 
-        </PieChart>
-      </ResponsiveContainer>
-    </div>
+                    <span className="font-medium">{item.warehouseName}</span>
+                  </div>
 
-    {/* Chú thích */}
-
-    <div className="w-1/3 space-y-3">
-
-      {warehouseChart.map((item: any, index: number) => (
-
-        <div
-          key={item.warehouseId}
-          className="flex items-center justify-between"
-        >
-
-          <div className="flex items-center gap-2">
-
-            <div
-              className="w-4 h-4 rounded"
-              style={{
-                backgroundColor: COLORS[index % COLORS.length],
-              }}
-            />
-
-            <span className="font-medium">
-              {item.warehouseName}
-            </span>
-
+                  <span className="font-bold">{item.total}</span>
+                </div>
+              ))}
+              <hr className="my-2" />
+              <span className="font-bold">
+                <span className="mr-2">Tổng:</span>
+                <span>
+                  {warehouseChart.reduce((sum, item) => sum + item.total, 0)}
+                </span>
+              </span>
+            </div>
           </div>
-
-          <span className="font-bold">
-            {item.total}
-          </span>
-
         </div>
-
-      ))}
-      <hr className="my-2" />
-      <span className="font-bold">
-        <span className="mr-2">Tổng:</span>
-        <span>{warehouseChart.reduce((sum, item) => sum + item.total, 0)}</span>
-      </span>
-
-    </div>
-
-  </div>
-</div>
+      </div>
+      <div className="bg-white rounded-xl shadow-sm border p-6">
+        <LogComponent />
       </div>
     </div>
   );

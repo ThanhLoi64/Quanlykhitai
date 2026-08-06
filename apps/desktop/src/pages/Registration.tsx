@@ -33,10 +33,7 @@ const accessoryOptions = [
   "Đạn",
   "Túi lựu đạn",
 ];
-const equipmentOptions = [
-  "Dây súng",
-  "Bao xe",
-];
+const equipmentOptions = ["Dây súng", "Bao xe"];
 const militaryEquipmentOptions = [
   "Cuốc to",
   "Xẻng to",
@@ -61,9 +58,13 @@ export default function Registration() {
   const [militaryEquipment, setMilitaryEquipment] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [selectedRegistration, setSelectedRegistration] = useState<any | null>(null);
+  const [selectedRegistration, setSelectedRegistration] = useState<any | null>(
+    null,
+  );
   const [isEditMode, setIsEditMode] = useState(false);
-  const [editingRegistrationId, setEditingRegistrationId] = useState<number | null>(null);
+  const [editingRegistrationId, setEditingRegistrationId] = useState<
+    number | null
+  >(null);
 
   const availableInventories = inventories.filter(
     (item) =>
@@ -104,11 +105,30 @@ export default function Registration() {
     setIsEditMode(true);
     setEditingRegistrationId(registration.id);
     setOwnerId(String(registration.ownerId || registration.owner?.id || ""));
-    setProductId(String(registration.detail?.productId || registration.detail?.product?.id || ""));
+    setProductId(
+      String(
+        registration.detail?.productId ||
+          registration.detail?.product?.id ||
+          "",
+      ),
+    );
     setDetailId(String(registration.detailId || ""));
-    setAccessory(parseSelectedValues(registration.detail?.accessory || registration.accessory));
-    setEquipment(parseSelectedValues(registration.detail?.equipment || registration.equipment));
-    setMilitaryEquipment(parseSelectedValues(registration.detail?.militaryEquipment || registration.militaryEquipment));
+    setAccessory(
+      parseSelectedValues(
+        registration.detail?.accessory || registration.accessory,
+      ),
+    );
+    setEquipment(
+      parseSelectedValues(
+        registration.detail?.equipment || registration.equipment,
+      ),
+    );
+    setMilitaryEquipment(
+      parseSelectedValues(
+        registration.detail?.militaryEquipment ||
+          registration.militaryEquipment,
+      ),
+    );
     setOpen(true);
   }
 
@@ -159,8 +179,9 @@ export default function Registration() {
   }
 
   const columns: GridColDef[] = [
-    { field: "stt", headerName: "STT", width: 10 },
-    { field: "fullName", headerName: "Họ tên",  width: 200 },
+    { field: "id", headerName: "ID", width: 90 },
+    { field: "stt", headerName: "STT", width: 70 },
+    { field: "fullName", headerName: "Họ tên", width: 200 },
     { field: "rank", headerName: "Cấp bậc", flex: 1 },
     { field: "position", headerName: "Chức vụ", flex: 1 },
     { field: "department", headerName: "Đơn vị", flex: 1 },
@@ -175,13 +196,27 @@ export default function Registration() {
       filterable: false,
       renderCell: (params) => (
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-          <Button size="small" variant="contained" onClick={() => openDetailModal(params.row.raw)}>
+          <Button
+            size="small"
+            variant="contained"
+            onClick={() => openDetailModal(params.row.raw)}
+          >
             Chi tiết
           </Button>
-          <Button size="small" color="secondary" variant="outlined" onClick={() => openEditModal(params.row.raw)}>
+          <Button
+            size="small"
+            color="secondary"
+            variant="outlined"
+            onClick={() => openEditModal(params.row.raw)}
+          >
             Sửa
           </Button>
-          <Button size="small" color="error" variant="outlined" onClick={() => handleDelete(params.row.raw.id)}>
+          <Button
+            size="small"
+            color="error"
+            variant="outlined"
+            onClick={() => handleDelete(params.row.raw.id)}
+          >
             Xóa
           </Button>
         </Box>
@@ -230,7 +265,11 @@ export default function Registration() {
       closeModal();
       load();
     } catch {
-      toast.error(editingRegistrationId ? "Cập nhật đăng ký thất bại" : "Đăng ký thất bại");
+      toast.error(
+        editingRegistrationId
+          ? "Cập nhật đăng ký thất bại"
+          : "Đăng ký thất bại",
+      );
     }
   }
 
@@ -250,6 +289,22 @@ export default function Registration() {
     return value;
   }
 
+  function formatStatus(status?: string | null) {
+    switch (status) {
+      case "REPAIR":
+        return "ĐANG SỬA CHỮA";
+
+      case "ISSUED":
+        return "ĐÃ CẤP";
+
+      case "IN_STOCK":
+        return "TRONG KHO";
+
+      default:
+        return "-";
+    }
+  }
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
@@ -260,7 +315,9 @@ export default function Registration() {
       </div>
 
       <Dialog open={open} onClose={closeModal} fullWidth maxWidth="md">
-        <DialogTitle>{isEditMode ? "Cập nhật đăng ký khí tài" : "Đăng ký khí tài"}</DialogTitle>
+        <DialogTitle>
+          {isEditMode ? "Cập nhật đăng ký khí tài" : "Đăng ký khí tài"}
+        </DialogTitle>
         <DialogContent>
           <div className="grid grid-cols-2 gap-5 mt-3">
             <div>
@@ -268,18 +325,28 @@ export default function Registration() {
               <Autocomplete
                 options={owners}
                 value={owners.find((o) => String(o.id) === ownerId) || null}
-                onChange={(_, newValue) => setOwnerId(newValue ? String(newValue.id) : "")}
+                onChange={(_, newValue) =>
+                  setOwnerId(newValue ? String(newValue.id) : "")
+                }
                 getOptionLabel={(option) =>
-                  option?.fullName ? `${option.fullName} - ${option.position || ""}` : ""
+                  option?.fullName
+                    ? `${option.fullName} - ${option.position || ""}`
+                    : ""
                 }
                 isOptionEqualToValue={(option, value) => option.id === value.id}
                 renderOption={(props, option) => (
                   <li {...props} key={option.id}>
-                    {option?.fullName ? `${option.fullName} - ${option.position || ""}` : ""}
+                    {option?.fullName
+                      ? `${option.fullName} - ${option.position || ""}`
+                      : ""}
                   </li>
                 )}
                 renderInput={(params) => (
-                  <TextField {...params} placeholder="Chọn người sử dụng" size="small" />
+                  <TextField
+                    {...params}
+                    placeholder="Chọn người sử dụng"
+                    size="small"
+                  />
                 )}
                 fullWidth
               />
@@ -302,7 +369,11 @@ export default function Registration() {
                   </li>
                 )}
                 renderInput={(params) => (
-                  <TextField {...params} placeholder="Chọn loại vũ khí" size="small" />
+                  <TextField
+                    {...params}
+                    placeholder="Chọn loại vũ khí"
+                    size="small"
+                  />
                 )}
                 fullWidth
               />
@@ -312,8 +383,13 @@ export default function Registration() {
               <label className="text-sm">Số hiệu</label>
               <Autocomplete
                 options={availableInventories}
-                value={availableInventories.find((i) => String(i.id) === detailId) || null}
-                onChange={(_, newValue) => setDetailId(newValue ? String(newValue.id) : "")}
+                value={
+                  availableInventories.find((i) => String(i.id) === detailId) ||
+                  null
+                }
+                onChange={(_, newValue) =>
+                  setDetailId(newValue ? String(newValue.id) : "")
+                }
                 onFocus={() => {
                   if (!productId) {
                     toast.warning("Vui lòng chọn loại vũ khí trước");
@@ -327,7 +403,11 @@ export default function Registration() {
                   </li>
                 )}
                 renderInput={(params) => (
-                  <TextField {...params} placeholder="Chọn số hiệu" size="small" />
+                  <TextField
+                    {...params}
+                    placeholder="Chọn số hiệu"
+                    size="small"
+                  />
                 )}
                 fullWidth
                 disabled={!productId}
@@ -342,7 +422,11 @@ export default function Registration() {
                 value={accessory}
                 onChange={(_, newValue) => setAccessory(newValue)}
                 renderInput={(params) => (
-                  <TextField {...params} placeholder="Chọn phụ tùng" size="small" />
+                  <TextField
+                    {...params}
+                    placeholder="Chọn phụ tùng"
+                    size="small"
+                  />
                 )}
                 fullWidth
               />
@@ -356,7 +440,11 @@ export default function Registration() {
                 value={equipment}
                 onChange={(_, newValue) => setEquipment(newValue)}
                 renderInput={(params) => (
-                  <TextField {...params} placeholder="Chọn trang bị" size="small" />
+                  <TextField
+                    {...params}
+                    placeholder="Chọn trang bị"
+                    size="small"
+                  />
                 )}
                 fullWidth
               />
@@ -370,7 +458,11 @@ export default function Registration() {
                 value={militaryEquipment}
                 onChange={(_, newValue) => setMilitaryEquipment(newValue)}
                 renderInput={(params) => (
-                  <TextField {...params} placeholder="Chọn quân cụ" size="small" />
+                  <TextField
+                    {...params}
+                    placeholder="Chọn quân cụ"
+                    size="small"
+                  />
                 )}
                 fullWidth
               />
@@ -385,7 +477,12 @@ export default function Registration() {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={detailOpen} onClose={closeDetailModal} fullWidth maxWidth="md">
+      <Dialog
+        open={detailOpen}
+        onClose={closeDetailModal}
+        fullWidth
+        maxWidth="md"
+      >
         <DialogTitle sx={{ pb: 0 }}>Chi tiết đăng ký</DialogTitle>
         <DialogContent>
           {selectedRegistration ? (
@@ -399,7 +496,8 @@ export default function Registration() {
                   p: 2.5,
                   borderRadius: 3,
                   border: "1px solid #dbeafe",
-                  background: "linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%)",
+                  background:
+                    "linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%)",
                 }}
               >
                 <Avatar
@@ -418,10 +516,25 @@ export default function Registration() {
                   <Typography variant="h5" sx={{ fontWeight: 700 }}>
                     {selectedRegistration.owner?.fullName || "-"}
                   </Typography>
-                  <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: "wrap", gap: 1 }}>
-                    <Chip label={`Cấp bậc: ${selectedRegistration.owner?.rank || "-"}`} color="primary" variant="outlined" />
-                    <Chip label={`Chức vụ: ${selectedRegistration.owner?.position || "-"}`} color="secondary" variant="outlined" />
-                    <Chip label={`Đơn vị: ${selectedRegistration.owner?.department || "-"}`} variant="outlined" />
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{ mt: 1, flexWrap: "wrap", gap: 1 }}
+                  >
+                    <Chip
+                      label={`Cấp bậc: ${selectedRegistration.owner?.rank || "-"}`}
+                      color="primary"
+                      variant="outlined"
+                    />
+                    <Chip
+                      label={`Chức vụ: ${selectedRegistration.owner?.position || "-"}`}
+                      color="secondary"
+                      variant="outlined"
+                    />
+                    <Chip
+                      label={`Đơn vị: ${selectedRegistration.owner?.department || "-"}`}
+                      variant="outlined"
+                    />
                   </Stack>
                 </Box>
               </Box>
@@ -433,116 +546,185 @@ export default function Registration() {
                   gap: 2,
                 }}
               >
-                <Box sx={{ p: 2, borderRadius: 2, bgcolor: "grey.50", border: "1px solid #e5e7eb" }}>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                <Box
+                  sx={{
+                    p: 2,
+                    borderRadius: 2,
+                    bgcolor: "grey.50",
+                    border: "1px solid #e5e7eb",
+                  }}
+                >
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    gutterBottom
+                  >
                     Khí tài
                   </Typography>
-                  <Typography sx={{ fontWeight: 600 }}>{selectedRegistration.detail?.product?.name || "-"}</Typography>
+                  <Typography sx={{ fontWeight: 600 }}>
+                    {selectedRegistration.detail?.product?.name || "-"}
+                  </Typography>
                 </Box>
-                <Box sx={{ p: 2, borderRadius: 2, bgcolor: "grey.50", border: "1px solid #e5e7eb" }}>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                <Box
+                  sx={{
+                    p: 2,
+                    borderRadius: 2,
+                    bgcolor: "grey.50",
+                    border: "1px solid #e5e7eb",
+                  }}
+                >
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    gutterBottom
+                  >
                     Số hiệu
                   </Typography>
-                  <Typography sx={{ fontWeight: 600 }}>{selectedRegistration.detail?.serialNumber || "-"}</Typography>
+                  <Typography sx={{ fontWeight: 600 }}>
+                    {selectedRegistration.detail?.serialNumber || "-"}
+                  </Typography>
                 </Box>
-                <Box sx={{ p: 2, borderRadius: 2, bgcolor: "grey.50", border: "1px solid #e5e7eb" }}>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                <Box
+                  sx={{
+                    p: 2,
+                    borderRadius: 2,
+                    bgcolor: "grey.50",
+                    border: "1px solid #e5e7eb",
+                  }}
+                >
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    gutterBottom
+                  >
                     Ngày đăng ký
                   </Typography>
                   <Typography sx={{ fontWeight: 600 }}>
-                    {new Date(selectedRegistration.registeredAt).toLocaleDateString("vi-VN")}
+                    {new Date(
+                      selectedRegistration.registeredAt,
+                    ).toLocaleDateString("vi-VN")}
                   </Typography>
                 </Box>
-                <Box sx={{ p: 2, borderRadius: 2, bgcolor: "grey.50", border: "1px solid #e5e7eb" }}>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                <Box
+                  sx={{
+                    p: 2,
+                    borderRadius: 2,
+                    bgcolor: "grey.50",
+                    border: "1px solid #e5e7eb",
+                  }}
+                >
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    gutterBottom
+                  >
                     Trạng thái
                   </Typography>
-                  <Typography sx={{ fontWeight: 600 }}>{formatValue(selectedRegistration.detail?.status)}</Typography>
+                  <Typography
+                    sx={{
+                      fontWeight: 600,
+                      color:
+                        selectedRegistration.detail?.status === "REPAIR"
+                          ? "warning.main"
+                          : selectedRegistration.detail?.status === "ISSUED"
+                            ? "success.main"
+                            : "text.primary",
+                    }}
+                  >
+                    {formatStatus(selectedRegistration.detail?.status)}
+                  </Typography>
                 </Box>
               </Box>
 
-              <Box sx={{ p: 2.5, borderRadius: 3, border: "1px solid #e5e7eb", bgcolor: "white" }}>
+              <Box
+                sx={{
+                  p: 2.5,
+                  borderRadius: 3,
+                  border: "1px solid #e5e7eb",
+                  bgcolor: "white",
+                }}
+              >
                 <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
                   Thông tin đi kèm
                 </Typography>
                 <Stack spacing={2}>
-                 <Box>
-  
-</Box>
-<Box
-  sx={{
-    display: "grid",
-    gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" },
-    gap: 2,
-    mt: 2,
-  }}
->
-  <Box
-    sx={{
-      p: 2,
-      borderRadius: 2,
-      bgcolor: "grey.50",
-      border: "1px solid",
-      borderColor: "grey.200",
-    }}
-  >
-    <Typography
-      variant="subtitle2"
-      color="text.secondary"
-      sx={{ mb: 1, fontWeight: 600 }}
-    >
-      Phụ tùng
-    </Typography>
+                  <Box></Box>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" },
+                      gap: 2,
+                      mt: 2,
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        p: 2,
+                        borderRadius: 2,
+                        bgcolor: "grey.50",
+                        border: "1px solid",
+                        borderColor: "grey.200",
+                      }}
+                    >
+                      <Typography
+                        variant="subtitle2"
+                        color="text.secondary"
+                        sx={{ mb: 1, fontWeight: 600 }}
+                      >
+                        Phụ tùng
+                      </Typography>
 
-    <Typography variant="body1" sx={{ fontWeight: 500 }}>
-      {formatValue(selectedRegistration.detail?.accessory)}
-    </Typography>
-  </Box>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {formatValue(selectedRegistration.detail?.accessory)}
+                      </Typography>
+                    </Box>
 
-  <Box
-    sx={{
-      p: 2,
-      borderRadius: 2,
-      bgcolor: "grey.50",
-      border: "1px solid",
-      borderColor: "grey.200",
-    }}
-  >
-    <Typography
-      variant="subtitle2"
-      color="text.secondary"
-      sx={{ mb: 1, fontWeight: 600 }}
-    >
-      Trang bị
-    </Typography>
+                    <Box
+                      sx={{
+                        p: 2,
+                        borderRadius: 2,
+                        bgcolor: "grey.50",
+                        border: "1px solid",
+                        borderColor: "grey.200",
+                      }}
+                    >
+                      <Typography
+                        variant="subtitle2"
+                        color="text.secondary"
+                        sx={{ mb: 1, fontWeight: 600 }}
+                      >
+                        Trang bị
+                      </Typography>
 
-    <Typography variant="body1" sx={{ fontWeight: 500 }}>
-      {formatValue(selectedRegistration.detail?.equipment)}
-    </Typography>
-  </Box>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {formatValue(selectedRegistration.detail?.equipment)}
+                      </Typography>
+                    </Box>
 
-  <Box
-    sx={{
-      p: 2,
-      borderRadius: 2,
-      bgcolor: "grey.50",
-      border: "1px solid",
-      borderColor: "grey.200",
-    }}
-  >
-    <Typography
-      variant="subtitle2"
-      color="text.secondary"
-      sx={{ mb: 1, fontWeight: 600 }}
-    >
-      Quân cụ
-    </Typography>
+                    <Box
+                      sx={{
+                        p: 2,
+                        borderRadius: 2,
+                        bgcolor: "grey.50",
+                        border: "1px solid",
+                        borderColor: "grey.200",
+                      }}
+                    >
+                      <Typography
+                        variant="subtitle2"
+                        color="text.secondary"
+                        sx={{ mb: 1, fontWeight: 600 }}
+                      >
+                        Quân cụ
+                      </Typography>
 
-    <Typography variant="body1" sx={{ fontWeight: 500 }}>
-      {formatValue(selectedRegistration.detail?.militaryEquipment)}
-    </Typography>
-  </Box>
-</Box>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {formatValue(
+                          selectedRegistration.detail?.militaryEquipment,
+                        )}
+                      </Typography>
+                    </Box>
+                  </Box>
                 </Stack>
               </Box>
             </Box>

@@ -121,6 +121,11 @@ export default function Products() {
   }
   const columns: GridColDef[] = [
     {
+      field: "id",
+      headerName: "ID",
+      width: 90,
+    },
+    {
       field: "name",
       headerName: " Tên vũ khí",
       flex: 1,
