@@ -46,10 +46,12 @@ export class RepairService {
           },
           damageStatus: dto.damageStatus ?? null,
           cause: dto.cause ?? null,
-          repairStartDate: dto.repairStartDate ?? null,
+          repairStartDate: dto.repairStartDate
+            ? new Date(dto.repairStartDate)
+            : null,
           severity: dto.severity ?? null,
           repairUnit: dto.repairUnit ?? null,
-          receivedDate: dto.receivedDate ?? null,
+          receivedDate: dto.receivedDate ? new Date(dto.receivedDate) : null,
           note: dto.note ?? null,
         },
         include: {
@@ -90,7 +92,10 @@ export class RepairService {
 
     const productDetailId = dto.productDetailId ?? existing.productDetailId;
 
-    if (dto.productDetailId && dto.productDetailId !== existing.productDetailId) {
+    if (
+      dto.productDetailId &&
+      dto.productDetailId !== existing.productDetailId
+    ) {
       const newDetail = await this.prisma.productDetail.findUnique({
         where: {
           id: dto.productDetailId,
@@ -103,13 +108,19 @@ export class RepairService {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      if (dto.productDetailId && dto.productDetailId !== existing.productDetailId) {
+      if (
+        dto.productDetailId &&
+        dto.productDetailId !== existing.productDetailId
+      ) {
         await tx.productDetail.update({
           where: {
             id: existing.productDetailId,
           },
           data: {
-            status: existing.productDetail.status === 'REPAIR' ? 'IN_STOCK' : existing.productDetail.status,
+            status:
+              existing.productDetail.status === 'REPAIR'
+                ? 'IN_STOCK'
+                : existing.productDetail.status,
           },
         });
 
@@ -126,10 +137,12 @@ export class RepairService {
       const data: any = {
         damageStatus: dto.damageStatus,
         cause: dto.cause,
-        repairStartDate: dto.repairStartDate,
+        repairStartDate: dto.repairStartDate
+          ? new Date(dto.repairStartDate)
+          : undefined,
         severity: dto.severity,
         repairUnit: dto.repairUnit,
-        receivedDate: dto.receivedDate,
+        receivedDate: dto.receivedDate ? new Date(dto.receivedDate) : undefined,
         note: dto.note,
       };
 

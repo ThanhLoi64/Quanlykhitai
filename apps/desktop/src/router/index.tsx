@@ -8,6 +8,7 @@ import Login from "../pages/Login";
 import Dashboard from "../pages/Dashboard";
 import Products from "../pages/Products";
 import Categories from "../pages/Categories";
+import Log from "../pages/Log";
 import Layout from "../components/Layout";
 import ProtectedRoute from "./ProtectedRoute";
 import ProductDetail from "../pages/ProductDetail";
@@ -45,6 +46,7 @@ return (
 
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/warehouses" element={<Warehouse />} />
+        <Route path="/logs" element={<Log />} />
         <Route path="/broken-watching" element={<BrockenWhatching />} />
 
       </Route>

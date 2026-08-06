@@ -6,11 +6,13 @@ Patch,
 Delete,
 Body,
 Param,
+Req,
 UseGuards
 } from '@nestjs/common';
 
 
 import { ProductService } from './product.service';
+import { LogService } from '../log/log.service';
 
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -31,7 +33,8 @@ export class ProductController {
 
 
 constructor(
-private productService:ProductService
+private productService:ProductService,
+private readonly logService: LogService,
 ){}
 
 
@@ -83,12 +86,17 @@ JwtAuthGuard,
 RolesGuard
 )
 @Roles('ADMIN')
-create(
+async create(
+@Req() req:any,
 @Body() dto:CreateProductDto
 ){
-
-return this.productService.create(dto);
-
+  const created = await this.productService.create(dto);
+  await this.logService.create(req.user, 'Thêm vũ khí mới', {
+    id: created.id,
+    name: dto.name,
+    unit: dto.unit,
+  });
+  return created;
 }
 
 
@@ -100,19 +108,24 @@ JwtAuthGuard,
 RolesGuard
 )
 @Roles('ADMIN')
-update(
-
+async update(
+@Req() req:any,
 @Param('id') id:string,
 
 @Body() dto:UpdateProductDto
 
 ){
-
-return this.productService.update(
-Number(id),
-dto
-);
-
+  const updated = await this.productService.update(
+    Number(id),
+    dto,
+  );
+  await this.logService.create(req.user, 'Cập nhật vũ khí', {
+    id: updated.id,
+    field: dto.name ? 'name' : 'other',
+    value: dto.name || updated.name,
+    unit: updated.unit,
+  });
+  return updated;
 }
 
 
@@ -120,24 +133,28 @@ dto
 
 @Delete(':id')
 @UseGuards(
-JwtAuthGuard,
-RolesGuard
+  JwtAuthGuard,
+  RolesGuard
 )
 @Roles('ADMIN')
-remove(
-@Param('id') id:string
+async remove(
+  @Req() req:any,
+  @Param('id') id:string
 ){
-
-return this.productService.remove(
-Number(id)
-);
-
+  const removed = await this.productService.remove(
+    Number(id)
+  );
+  await this.logService.create(req.user, 'Xóa vũ khí', {
+    id: Number(id),
+    name: removed.name,
+  });
+  return removed;
 }
 
-@Get("test")
+@Get('test')
 test(){
  return {
-   server:"OK"
+   server:'OK'
  }
 }
 }

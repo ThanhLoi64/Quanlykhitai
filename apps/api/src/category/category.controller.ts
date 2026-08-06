@@ -6,10 +6,12 @@ import {
   Delete,
   Body,
   Param,
+  Req,
   UseGuards
 } from '@nestjs/common';
 
 import { CategoryService } from './category.service';
+import { LogService } from '../log/log.service';
 
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -27,7 +29,8 @@ export class CategoryController {
 
 
   constructor(
-    private readonly categoryService: CategoryService
+    private readonly categoryService: CategoryService,
+    private readonly logService: LogService,
   ){}
 
 
@@ -56,13 +59,15 @@ export class CategoryController {
   RolesGuard
 )
 @Roles('ADMIN')
-create(
+async create(
+  @Req() req:any,
   @Body() dto:CreateCategoryDto
 ){
+  const created = await this.categoryService.create(dto);
 
-  console.log("BODY NHAN DUOC:", dto);
+  await this.logService.create(req.user, 'Thêm danh mục', `Tên: ${dto.name}`);
 
-  return this.categoryService.create(dto);
+  return created;
 
 }
 
@@ -78,21 +83,23 @@ create(
   RolesGuard
 )
 @Roles('ADMIN')
-update(
+async update(
 
+  @Req() req:any,
   @Param('id') id:string,
 
   @Body() dto:UpdateCategoryDto
 
 ){
 
-  console.log("UPDATE ID:", id);
-  console.log("UPDATE BODY:", dto);
-
-  return this.categoryService.update(
+  const updated = await this.categoryService.update(
     Number(id),
     dto
   );
+
+  await this.logService.create(req.user, 'Cập nhật danh mục', `Tên: ${dto.name}`);
+
+  return updated;
 
 }
 
@@ -108,13 +115,17 @@ update(
     RolesGuard
   )
   @Roles('ADMIN')
-  remove(
+  async remove(
+    @Req() req:any,
     @Param('id') id:string
   ){
-
-    return this.categoryService.remove(
+    const removed = await this.categoryService.remove(
       Number(id)
     );
+
+    await this.logService.create(req.user, 'Xóa danh mục', `Tên: ${removed.name}`);
+
+    return removed;
 
   }
 

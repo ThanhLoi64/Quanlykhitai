@@ -129,6 +129,15 @@ model Warehouse {
   details     ProductDetail[]
 }
 
+model AppLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  username  String
+  action    String
+  detail    String?
+  createdAt DateTime @default(now())
+}
+
 enum UserRole {
   ADMIN
   STAFF

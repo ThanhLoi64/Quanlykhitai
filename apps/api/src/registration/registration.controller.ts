@@ -1,20 +1,22 @@
-import { Controller, Post, Get, Body, Patch, Delete, Param, ParseIntPipe } from '@nestjs/common';
+import { Controller, Post, Get, Body, Patch, Delete, Param, ParseIntPipe, Req, UseGuards } from '@nestjs/common';
 
 import { RegistrationService } from './registration.service';
 import { CreateRegistrationDto } from './dto/create-registration.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { LogService } from '../log/log.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
 
 
 @ApiBearerAuth()
-@ApiTags("Registrations")
+@ApiTags('Registrations')
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('registrations')
 export class RegistrationController {
-
-
-constructor(
-private readonly service: RegistrationService
-){}
-
+  constructor(
+    private readonly service: RegistrationService,
+    private readonly logService: LogService,
+  ) {}
 
 
 @Get()
@@ -27,27 +29,34 @@ return this.service.findAll();
 
 
 @Post()
-create(
-@Body() dto:CreateRegistrationDto
+async create(
+  @Req() req: any,
+  @Body() dto: CreateRegistrationDto
 ){
-
-return this.service.create(dto);
-
+  const created = await this.service.create(dto);
+  await this.logService.create(req.user, 'Thêm đăng ký', `Owner ID: ${dto.ownerId}`);
+  return created;
 }
 
 @Patch(':id')
-update(
+async update(
+  @Req() req: any,
   @Param('id', ParseIntPipe) id: number,
   @Body() dto: Partial<CreateRegistrationDto>,
 ) {
-  return this.service.update(id, dto);
+  const updated = await this.service.update(id, dto);
+  await this.logService.create(req.user, 'Cập nhật đăng ký', `ID đăng ký: ${id}`);
+  return updated;
 }
 
 @Delete(':id')
-remove(
+async remove(
+  @Req() req: any,
   @Param('id', ParseIntPipe) id: number,
 ) {
-  return this.service.remove(id);
+  const removed = await this.service.remove(id);
+  await this.logService.create(req.user, 'Xóa đăng ký', `ID đăng ký: ${id}`);
+  return removed;
 }
 
 

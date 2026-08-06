@@ -1,18 +1,35 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { CreateInventoryDto } from './dto/create-inventory.dto';
 import { UpdateInventoryDto } from './dto/update-inventory.dto';
 import { ImportInventoryItemDto } from './dto/import-inventory.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { LogService } from '../log/log.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
 
 
 @ApiBearerAuth()
-@ApiTags("Inventory")
-@Controller("inventory")
+@ApiTags('Inventory')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Controller('inventory')
 export class InventoryController {
-  constructor(private readonly service: InventoryService) {}
-  
-   @Get("warehouse-summary")
+  constructor(
+    private readonly service: InventoryService,
+    private readonly logService: LogService,
+  ) {}
+
+  @Get('warehouse-summary')
   warehouseSummary() {
     return this.service.warehouseSummary();
   }
@@ -23,22 +40,45 @@ export class InventoryController {
   }
 
   @Post()
-  create(@Body() dto: CreateInventoryDto) {
-    return this.service.create(dto);
+  async create(@Req() req: any, @Body() dto: CreateInventoryDto) {
+    const created = await this.service.create(dto);
+    await this.logService.create(req.user, 'Nhập kho', {
+      productId: created.productId,
+      serialNumber: created.serialNumber,
+      warehouseId: created.warehouseId,
+    });
+    return created;
   }
 
-  @Post("import")
-  import(@Body() rows: ImportInventoryItemDto[]) {
-    return this.service.importFromExcel(rows);
+  @Post('import')
+  async import(@Req() req: any, @Body() rows: ImportInventoryItemDto[]) {
+    const result = await this.service.importFromExcel(rows);
+    await this.logService.create(req.user, 'Import kho', {
+      count: rows.length,
+      createdIds: result.map((item: any) => item.id),
+    });
+    return result;
   }
 
-  @Patch(":id")
-  update(@Param("id") id: string, @Body() dto: UpdateInventoryDto) {
-    return this.service.update(+id, dto);
+  @Patch(':id')
+  async update(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: UpdateInventoryDto,
+  ) {
+    const updated = await this.service.update(+id, dto);
+    await this.logService.create(req.user, 'Cập nhật kho', {
+      id: +id,
+      productId: updated.productId,
+      serialNumber: updated.serialNumber,
+    });
+    return updated;
   }
 
-  @Delete(":id")
-  remove(@Param("id") id: string) {
-    return this.service.remove(+id);
+  @Delete(':id')
+  async remove(@Req() req: any, @Param('id') id: string) {
+    const removed = await this.service.remove(+id);
+    await this.logService.create(req.user, 'Xóa kho', `ID kho: ${id}`);
+    return removed;
   }
 }

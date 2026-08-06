@@ -6,6 +6,7 @@ import {
   Tags,
   ClipboardList,
   Users,
+  Activity,
   LogOut,
   Menu,
   ChevronLeft,
@@ -77,7 +78,7 @@ export default function Layout() {
           className="
           flex
           flex-col
-          gap-3
+          gap-1
           "
         >
           <NavLink to="/dashboard" className={menuClass}>
@@ -114,6 +115,11 @@ export default function Layout() {
             <Warehouse size={30} />
             {!collapsed && <span>Theo dõi hư hỏng - sửa chữa</span>}
           </NavLink>
+          <NavLink to="/logs" className={menuClass}>
+            <Activity size={20} />
+            {!collapsed && <span>Nhật ký hệ thống</span>}
+          </NavLink>
+
           <button
             onClick={logout}
             className="flex items-center gap-3 px-4 py-1 rounded-lg text-red-400 hover:bg-red-500 hover:text-white transition mt-5"
