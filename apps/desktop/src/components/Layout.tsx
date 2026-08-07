@@ -150,7 +150,8 @@ export default function Layout() {
       <main
         className="
         flex-1
-        p-8
+        px-8
+        pb-8
         bg-slate-100
         overflow-auto
         "

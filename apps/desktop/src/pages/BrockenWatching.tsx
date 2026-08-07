@@ -37,18 +37,6 @@ export default function BrokenWatching() {
   const [repairUnit, setRepairUnit] = useState("");
   const [receivedDate, setReceivedDate] = useState("");
   const [note, setNote] = useState("");
-  const DetailItem = ({
-    label,
-    value,
-  }: {
-    label: string;
-    value?: React.ReactNode;
-  }) => (
-    <div className="border rounded-lg p-3 bg-gray-50">
-      <p className="text-xs text-gray-500 mb-1">{label}</p>
-      <p className="font-medium text-gray-900">{value || "-"}</p>
-    </div>
-  );
 
   const selectedProduct = useMemo(
     () => products.find((item) => String(item.id) === productId),

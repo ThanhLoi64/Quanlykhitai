@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../api/api";
-import { Package, FolderOpen, User, Warehouse } from "lucide-react";
+import { Package, FolderOpen, User, Warehouse, Wrench } from "lucide-react";
 
 import {
   ResponsiveContainer,
@@ -78,7 +78,7 @@ export default function Dashboard() {
     api.get("/inventory/warehouse-summary").then((res) => {
       setWarehouseChart(res.data);
     });
-     api.get("/repairs").then((res) => {
+    api.get("/repairs").then((res) => {
       setRepairs(res.data.length);
     });
   }, []);
@@ -114,24 +114,75 @@ export default function Dashboard() {
   const handleClose = () => {
     setAnchorEl(null);
   };
-
+  const stats = [
+    {
+      title: "Tổng khí tài",
+      value: products,
+      path: "/products",
+      icon: Package,
+      color: "blue",
+    },
+    {
+      title: "Danh mục",
+      value: categories,
+      path: "/categories",
+      icon: FolderOpen,
+      color: "green",
+    },
+    {
+      title: "Quân nhân",
+      value: owners,
+      path: "/owners",
+      icon: User,
+      color: "indigo",
+    },
+    {
+      title: "Vũ khí trong kho",
+      value: inventory,
+      path: "/inventory",
+      icon: Warehouse,
+      color: "emerald",
+    },
+    {
+      title: "Đang sửa chữa",
+      value: repairs,
+      path: "/broken-watching",
+      icon: Wrench,
+      color: "orange",
+    },
+  ];
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pt-2">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">Dashboard</h1>
+          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">
+            Dashboard
+          </h1>
 
           <p className="text-slate-500 mt-2">
             Tổng quan hệ thống quản lý khí tài trang bị
           </p>
         </div>
 
-        <Badge badgeContent={notifications.length} color="error">
-          <IconButton onClick={handleOpen}>
-            <Bell size={22} />
+        {/* Notification */}
+        <Badge
+          badgeContent={notifications.length}
+          color="error"
+          overlap="circular"
+        >
+          <IconButton
+            onClick={handleOpen}
+            className="bg-white shadow-sm border hover:bg-slate-50"
+            sx={{
+              width: 48,
+              height: 48,
+            }}
+          >
+            <Bell size={22} className="text-slate-700" />
           </IconButton>
         </Badge>
+
         <Menu
           anchorEl={anchorEl}
           open={Boolean(anchorEl)}
@@ -139,16 +190,17 @@ export default function Dashboard() {
           slotProps={{
             paper: {
               sx: {
-                width: 380,
+                width: 400,
                 maxHeight: 450,
-                mt: 1,
+                mt: 1.5,
                 borderRadius: 3,
+                boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
               },
             },
           }}
         >
           {notifications.length === 0 ? (
-            <MenuItem>Không có thông báo.</MenuItem>
+            <MenuItem className="text-slate-500">Không có thông báo</MenuItem>
           ) : (
             notifications.map((log) => (
               <MenuItem
@@ -157,17 +209,32 @@ export default function Dashboard() {
                   whiteSpace: "normal",
                   alignItems: "flex-start",
                   py: 1.5,
+                  borderBottom: "1px solid #f1f5f9",
                 }}
               >
-                <div>
-                  <div className="font-semibold text-blue-600">
-                    {log.action}
-                  </div>
+                <div className="flex gap-3">
+                  <div
+                    className="
+              mt-1 
+              w-2 
+              h-2 
+              rounded-full 
+              bg-blue-600
+              "
+                  />
 
-                  <div className="text-sm">{log.detail}</div>
+                  <div>
+                    <div className="font-semibold text-slate-800">
+                      {log.action}
+                    </div>
 
-                  <div className="text-xs text-gray-500 mt-1">
-                    {new Date(log.createdAt).toLocaleString("vi-VN")}
+                    <div className="text-sm text-slate-600 mt-1">
+                      {log.detail}
+                    </div>
+
+                    <div className="text-xs text-slate-400 mt-2">
+                      {new Date(log.createdAt).toLocaleString("vi-VN")}
+                    </div>
                   </div>
                 </div>
               </MenuItem>
@@ -181,144 +248,198 @@ export default function Dashboard() {
             }}
             sx={{
               justifyContent: "center",
-              fontWeight: "bold",
-              color: "#1976d2",
+              fontWeight: "600",
+              color: "#2563eb",
+              py: 1.5,
             }}
           >
-            Xem tất cả
+            Xem tất cả hoạt động
           </MenuItem>
         </Menu>
       </div>
-      {/* Welcome */}
-      <div className="bg-white rounded-xl shadow-sm border p-6">
-        <h2 className="text-xl font-semibold mb-3">
-          Chào mừng đến với hệ thống
-        </h2>
 
-        <p className="text-slate-600 leading-7">
-          Hệ thống hỗ trợ quản lý khí tài, trang bị, danh mục và thông tin sử
-          dụng. Bạn có thể theo dõi số lượng trang bị, quản lý danh mục và cập
-          nhật dữ liệu nhanh chóng từ thanh điều hướng bên trái.
-        </p>
+      {/* Welcome Card */}
+      <div
+        className="
+  relative
+  overflow-hidden
+  bg-linear-to-r
+  from-slate-800
+  to-slate-700
+  rounded-2xl
+  shadow-lg
+  p-8
+  text-white
+  mb-8
+  "
+      >
+        {/* decoration */}
+        <div
+          className="
+    absolute
+    right-0
+    top-0
+    w-72
+    h-72
+    bg-white/10
+    rounded-full
+    translate-x-20
+    -translate-y-20
+    "
+        />
+
+        <div className="relative z-10">
+          <h2 className="text-2xl font-bold mb-3">
+            Chào mừng đến với hệ thống
+          </h2>
+
+          <p
+            className="
+      text-slate-200
+      max-w-3xl
+      leading-7
+      "
+          >
+            Hệ thống hỗ trợ quản lý khí tài, trang bị, danh mục và thông tin sử
+            dụng. Bạn có thể theo dõi số lượng trang bị, quản lý danh mục và cập
+            nhật dữ liệu nhanh chóng từ thanh điều hướng bên trái.
+          </p>
+
+          <div className="flex gap-4 mt-6"></div>
+        </div>
       </div>
       {/* Statistic Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
-        <Link to="/products">
-          <div
-            className="bg-white rounded-xl shadow-sm border p-6
-      cursor-pointer
-      transition-all duration-200 ease-out
-      hover:-translate-y-1 hover:shadow-lg
-      active:translate-y-0 active:scale-95"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-slate-500 text-sm">Tổng khí tài</p>
 
-                <h2 className="text-4xl font-bold text-blue-600 mt-2">
-                  {products}
-                </h2>
-              </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-5">
+        {stats.map((item) => {
+          const Icon = item.icon;
 
-              <div className="bg-blue-100 p-4 rounded-full">
-                <Package size={32} className="text-blue-600" />
-              </div>
-            </div>
-          </div>
-        </Link>
-        <Link to="/categories">
-          <div
-            className="bg-white rounded-xl shadow-sm border p-6
-      cursor-pointer
-      transition-all duration-200 ease-out
-      hover:-translate-y-1 hover:shadow-lg
-      active:translate-y-0 active:scale-95"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-slate-500 text-sm">Danh mục</p>
+          const colorMap: any = {
+            blue: {
+              bg: "bg-blue-100",
+              icon: "text-blue-600",
+              number: "text-blue-600",
+              line: "bg-blue-500",
+            },
 
-                <h2 className="text-4xl font-bold text-green-600 mt-2">
-                  {categories}
-                </h2>
-              </div>
+            green: {
+              bg: "bg-green-100",
+              icon: "text-green-600",
+              number: "text-green-600",
+              line: "bg-green-500",
+            },
 
-              <div className="bg-green-100 p-4 rounded-full">
-                <FolderOpen size={32} className="text-green-600" />
-              </div>
-            </div>
-          </div>
-        </Link>
-        <Link to="/owners">
-          <div
-            className="bg-white rounded-xl shadow-sm border p-6
-      cursor-pointer
-      transition-all duration-200 ease-out
-      hover:-translate-y-1 hover:shadow-lg
-      active:translate-y-0 active:scale-95"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-slate-500 text-sm">Quân nhân</p>
+            indigo: {
+              bg: "bg-indigo-100",
+              icon: "text-indigo-600",
+              number: "text-indigo-600",
+              line: "bg-indigo-500",
+            },
 
-                <h2 className="text-4xl font-bold text-green-600 mt-2">
-                  {owners}
-                </h2>
-              </div>
+            emerald: {
+              bg: "bg-emerald-100",
+              icon: "text-emerald-600",
+              number: "text-emerald-600",
+              line: "bg-emerald-500",
+            },
 
-              <div className="bg-green-100 p-4 rounded-full">
-                <User size={32} className="text-green-600" />
-              </div>
-            </div>
-          </div>
-        </Link>
-        <Link to="/inventory">
-          <div
-            className="bg-white rounded-xl shadow-sm border p-6
-      cursor-pointer
-      transition-all duration-200 ease-out
-      hover:-translate-y-1 hover:shadow-lg
-      active:translate-y-0 active:scale-95"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-slate-500 text-sm">Vũ khí trong kho</p>
+            orange: {
+              bg: "bg-orange-100",
+              icon: "text-orange-600",
+              number: "text-orange-600",
+              line: "bg-orange-500",
+            },
+          };
 
-                <h2 className="text-4xl font-bold text-green-600 mt-2">
-                  {inventory}
-                </h2>
-              </div>
+          return (
+            <Link key={item.path} to={item.path}>
+              <div
+                className="
+group
+relative
+overflow-hidden
+bg-white
+rounded-2xl
+border
+shadow-sm
+p-6
 
-              <div className="bg-green-100 p-4 rounded-full">
-                <Warehouse size={32} className="text-green-600" />
-              </div>
-            </div>
-          </div>
-        </Link>
-         <Link to="/broken-watching">
-          <div
-            className="bg-white rounded-xl shadow-sm border p-6
-      cursor-pointer
-      transition-all duration-200 ease-out
-      hover:-translate-y-1 hover:shadow-lg
-      active:translate-y-0 active:scale-95"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-slate-500 text-sm">Tổng sửa chữa</p>
+cursor-pointer
 
-                <h2 className="text-4xl font-bold text-orange-500 mt-2">
-                  {repairs}
-                </h2>
-              </div>
+transition-all
+duration-300
 
-              <div className="bg-orange-100 p-4 rounded-full">
-                <Package size={32} className="text-orange-600" />
+hover:-translate-y-1
+hover:shadow-xl
+"
+              >
+                {/* top line */}
+
+                <div
+                  className={`
+absolute
+top-0
+left-0
+h-1
+w-full
+${colorMap[item.color].line}
+`}
+                ></div>
+
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p
+                      className="
+text-sm
+text-slate-500
+font-medium
+"
+                    >
+                      {item.title}
+                    </p>
+
+                    <h2
+                      className={`
+text-4xl
+font-bold
+mt-3
+${colorMap[item.color].number}
+`}
+                    >
+                      {item.value}
+                    </h2>
+
+                    <p
+                      className="
+text-xs
+text-slate-400
+mt-2
+"
+                    >
+                    </p>
+                  </div>
+
+                  <div
+                    className={`
+${colorMap[item.color].bg}
+p-4
+rounded-2xl
+
+group-hover:scale-110
+
+transition-transform
+duration-300
+`}
+                  >
+                    <Icon size={32} className={colorMap[item.color].icon} />
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        </Link>
+            </Link>
+          );
+        })}
       </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Biểu đồ */}
         <div className="bg-white rounded-xl shadow-sm border p-6">
@@ -451,6 +572,11 @@ export default function Dashboard() {
       </div>
       <div className="bg-white rounded-xl shadow-sm border p-6">
         <LogComponent />
+      </div>
+      <div className=" text-center text-[0.7rem] text-slate-500 ">
+        <span>
+          <span> @ 2026 Quan Ly Khi Tai. All rights reserved.</span>
+        </span>
       </div>
     </div>
   );
