@@ -1,6 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import api from "../api/api";
-import { Package, FolderOpen, User, Warehouse, Wrench } from "lucide-react";
+import {
+  Package,
+  FolderOpen,
+  User,
+  Warehouse,
+  Wrench,
+  LogOut,
+  Shield,
+} from "lucide-react";
 
 import {
   ResponsiveContainer,
@@ -31,7 +39,34 @@ export default function Dashboard() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
   const navigate = useNavigate();
+  const [userAnchor, setUserAnchor] = useState<null | HTMLElement>(null);
 
+  const user = useMemo(() => {
+    const data = localStorage.getItem("user");
+
+    if (!data) return null;
+
+    try {
+      return JSON.parse(data);
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const handleUserOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setUserAnchor(event.currentTarget);
+  };
+
+  const handleUserClose = () => {
+    setUserAnchor(null);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("accessToken");
+
+    navigate("/login");
+  };
   useEffect(() => {
     api.get("/products").then((res) => {
       const data = res.data;
@@ -164,98 +199,221 @@ export default function Dashboard() {
             Tổng quan hệ thống quản lý khí tài trang bị
           </p>
         </div>
+        <div className="flex items-center justify-center mb-8">
+          <Badge
+            badgeContent={notifications.length}
+            color="error"
+            overlap="circular"
+          >
+            <IconButton
+              onClick={handleOpen}
+              className="bg-white shadow-sm border hover:bg-slate-50"
+              sx={{
+                width: 48,
+                height: 48,
+              }}
+            >
+              <Bell size={22} className="text-slate-700" />
+            </IconButton>
+          </Badge>
 
-        {/* Notification */}
-        <Badge
-          badgeContent={notifications.length}
-          color="error"
-          overlap="circular"
-        >
-          <IconButton
-            onClick={handleOpen}
-            className="bg-white shadow-sm border hover:bg-slate-50"
-            sx={{
-              width: 48,
-              height: 48,
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleClose}
+            slotProps={{
+              paper: {
+                sx: {
+                  width: 400,
+                  maxHeight: 450,
+                  mt: 1.5,
+                  borderRadius: 3,
+                  boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
+                },
+              },
             }}
           >
-            <Bell size={22} className="text-slate-700" />
-          </IconButton>
-        </Badge>
-
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={handleClose}
-          slotProps={{
-            paper: {
-              sx: {
-                width: 400,
-                maxHeight: 450,
-                mt: 1.5,
-                borderRadius: 3,
-                boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
-              },
-            },
-          }}
-        >
-          {notifications.length === 0 ? (
-            <MenuItem className="text-slate-500">Không có thông báo</MenuItem>
-          ) : (
-            notifications.map((log) => (
-              <MenuItem
-                key={log.id}
-                sx={{
-                  whiteSpace: "normal",
-                  alignItems: "flex-start",
-                  py: 1.5,
-                  borderBottom: "1px solid #f1f5f9",
-                }}
-              >
-                <div className="flex gap-3">
-                  <div
-                    className="
+            {notifications.length === 0 ? (
+              <MenuItem className="text-slate-500">Không có thông báo</MenuItem>
+            ) : (
+              notifications.map((log) => (
+                <MenuItem
+                  key={log.id}
+                  sx={{
+                    whiteSpace: "normal",
+                    alignItems: "flex-start",
+                    py: 1.5,
+                    borderBottom: "1px solid #f1f5f9",
+                  }}
+                >
+                  <div className="flex gap-3">
+                    <div
+                      className="
               mt-1 
               w-2 
               h-2 
               rounded-full 
               bg-blue-600
               "
-                  />
+                    />
 
-                  <div>
-                    <div className="font-semibold text-slate-800">
-                      {log.action}
-                    </div>
+                    <div>
+                      <div className="font-semibold text-slate-800">
+                        {log.action}
+                      </div>
 
-                    <div className="text-sm text-slate-600 mt-1">
-                      {log.detail}
-                    </div>
+                      <div className="text-sm text-slate-600 mt-1">
+                        {log.detail}
+                      </div>
 
-                    <div className="text-xs text-slate-400 mt-2">
-                      {new Date(log.createdAt).toLocaleString("vi-VN")}
+                      <div className="text-xs text-slate-400 mt-2">
+                        {new Date(log.createdAt).toLocaleString("vi-VN")}
+                      </div>
                     </div>
                   </div>
+                </MenuItem>
+              ))
+            )}
+
+            <MenuItem
+              onClick={() => {
+                navigate("/logs");
+                handleClose();
+              }}
+              sx={{
+                justifyContent: "center",
+                fontWeight: "600",
+                color: "#2563eb",
+                py: 1.5,
+              }}
+            >
+              Xem tất cả hoạt động
+            </MenuItem>
+          </Menu>
+          {/* User Profile */}
+          <div className="ml-4">
+            <button
+              onClick={handleUserOpen}
+              className="
+flex
+items-center
+gap-3
+bg-white
+border
+rounded-xl
+px-3
+py-2
+shadow-sm
+hover:bg-slate-50
+transition
+"
+            >
+              <div
+                className="
+w-10
+h-10
+rounded-xl
+bg-blue-600
+text-white
+flex
+items-center
+justify-center
+font-bold
+text-lg
+"
+              >
+                {user?.username?.charAt(0).toUpperCase() || "U"}
+              </div>
+
+              <div className="text-left">
+                <p
+                  className="
+text-sm
+font-semibold
+text-slate-800
+"
+                >
+                  {user?.fullName || "Chưa đăng nhập"}
+                </p>
+
+                <p
+                  className="
+text-xs
+text-slate-500
+"
+                >
+                   {user?.username || "Chưa đăng nhập"}
+                </p>
+              </div>
+            </button>
+
+            <Menu
+              anchorEl={userAnchor}
+              open={Boolean(userAnchor)}
+              onClose={handleUserClose}
+              slotProps={{
+                paper: {
+                  sx: {
+                    mt: 1,
+                    width: 220,
+                    borderRadius: 3,
+                    boxShadow: "0 10px 30px rgba(0,0,0,.12)",
+                  },
+                },
+              }}
+            >
+              <MenuItem
+                sx={{
+                  gap: 2,
+                  py: 1.5,
+                }}
+              >
+                <Shield size={20} className="text-blue-600" />
+
+                <div>
+                  <p
+                    className="
+text-sm
+font-semibold
+"
+                  >
+                    Quyền truy cập
+                  </p>
+
+                  <p
+                    className="
+text-xs
+text-slate-500
+"
+                  >
+                    {user?.role || "USER"}
+                  </p>
                 </div>
               </MenuItem>
-            ))
-          )}
 
-          <MenuItem
-            onClick={() => {
-              navigate("/logs");
-              handleClose();
-            }}
-            sx={{
-              justifyContent: "center",
-              fontWeight: "600",
-              color: "#2563eb",
-              py: 1.5,
-            }}
-          >
-            Xem tất cả hoạt động
-          </MenuItem>
-        </Menu>
+              <MenuItem
+                onClick={() => {
+                  handleLogout();
+                }}
+                sx={{
+                  gap: 2,
+                  py: 1.5,
+                  color: "#dc2626",
+                }}
+              >
+                <LogOut size={20} />
+
+                <span
+                  className="
+font-semibold
+"
+                >
+                  Đăng xuất
+                </span>
+              </MenuItem>
+            </Menu>
+          </div>
+        </div>
       </div>
 
       {/* Welcome Card */}
@@ -415,8 +573,7 @@ text-xs
 text-slate-400
 mt-2
 "
-                    >
-                    </p>
+                    ></p>
                   </div>
 
                   <div

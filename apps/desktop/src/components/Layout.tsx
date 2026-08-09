@@ -15,7 +15,6 @@ import {
   ListCheck,
 } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
-import LoginStatus from "../components/Loginstatus";
 
 
 export default function Layout() {
@@ -60,7 +59,7 @@ export default function Layout() {
     duration-300
   `}
       >
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between py-3">
           {!collapsed && (
             <h2 className="text-xl font-bold uppercase">QUẢN LÝ KHÍ TÀI</h2>
           )}
@@ -72,12 +71,6 @@ export default function Layout() {
             {collapsed ? <Menu size={20} /> : <ChevronLeft size={20} />}
           </button>
         </div>
-
-        {!collapsed && (
-          <div className="mt-6 border-b border-slate-700 pb-6">
-            <LoginStatus />
-          </div>
-        )}
         <nav
           className="
           flex
