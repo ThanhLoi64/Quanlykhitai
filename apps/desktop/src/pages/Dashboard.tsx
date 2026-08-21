@@ -9,19 +9,6 @@ import {
   LogOut,
   Shield,
 } from "lucide-react";
-
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
 import { Link, useNavigate } from "react-router-dom";
 import LogComponent from "../components/LogComponent";
 import { Bell } from "lucide-react";
@@ -31,15 +18,17 @@ export default function Dashboard() {
   const [products, setProducts] = useState(0);
   const [categories, setCategories] = useState(0);
   const [owners, setOwners] = useState(0);
-  const [chartData, setChartData] = useState<any[]>([]);
-  const [latestProducts, setLatestProducts] = useState<any[]>([]);
   const [inventory, setInventory] = useState(0);
   const [repairs, setRepairs] = useState(0);
-  const [warehouseChart, setWarehouseChart] = useState<any[]>([]);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
   const navigate = useNavigate();
   const [userAnchor, setUserAnchor] = useState<null | HTMLElement>(null);
+  const [weaponSummary, setWeaponSummary] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<
+  "category" | "stock" | "issued"
+>("category");
+
 
   const user = useMemo(() => {
     const data = localStorage.getItem("user");
@@ -68,37 +57,34 @@ export default function Dashboard() {
     navigate("/login");
   };
   useEffect(() => {
-    api.get("/products").then((res) => {
-      const data = res.data;
+   api.get("/products").then((res) => {
+  const data = res.data;
 
-      setProducts(data.length);
+  const grouped: any = {};
 
-      // 5 sản phẩm mới nhất
-      const latest = [...data]
-        .sort(
-          (a: any, b: any) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-        )
-        .slice(0, 5);
+  data.forEach((product: any) => {
+    const categoryName = product.category?.name || "Khác";
 
-      setLatestProducts(latest);
+    if (!grouped[categoryName]) {
+      grouped[categoryName] = {
+        category: categoryName,
+        total: 0,
+        products: [],
+      };
+    }
 
-      // Biểu đồ
-      const grouped: any = {};
+    const quantity = product.details.length;
 
-      data.forEach((p: any) => {
-        const category = p.category?.name || "Khác";
-
-        grouped[category] = (grouped[category] || 0) + p.quantity;
-      });
-
-      setChartData(
-        Object.keys(grouped).map((key) => ({
-          category: key,
-          quantity: grouped[key],
-        })),
-      );
+    grouped[categoryName].products.push({
+      name: product.name,
+      quantity,
     });
+
+    grouped[categoryName].total += quantity;
+  });
+
+  setWeaponSummary(Object.values(grouped));
+});
 
     api.get("/categories").then((res) => {
       setCategories(res.data.length);
@@ -110,23 +96,11 @@ export default function Dashboard() {
     api.get("/inventory").then((res) => {
       setInventory(res.data.length);
     });
-    api.get("/inventory/warehouse-summary").then((res) => {
-      setWarehouseChart(res.data);
-    });
     api.get("/repairs").then((res) => {
       setRepairs(res.data.length);
     });
   }, []);
 
-  const COLORS = [
-    "#2563eb",
-    "#16a34a",
-    "#ea580c",
-    "#9333ea",
-    "#dc2626",
-    "#0891b2",
-    "#ca8a04",
-  ];
   async function loadNotifications() {
     try {
       const res = await api.get("/logs");
@@ -165,13 +139,6 @@ export default function Dashboard() {
       color: "green",
     },
     {
-      title: "Quân nhân",
-      value: owners,
-      path: "/owners",
-      icon: User,
-      color: "indigo",
-    },
-    {
       title: "Vũ khí trong kho",
       value: inventory,
       path: "/inventory",
@@ -185,6 +152,13 @@ export default function Dashboard() {
       icon: Wrench,
       color: "orange",
     },
+    {
+      title: "Quân nhân",
+      value: owners,
+      path: "/owners",
+      icon: User,
+      color: "indigo",
+    },
   ];
   return (
     <div className="space-y-8 pt-2">
@@ -192,7 +166,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-slate-800 tracking-tight">
-            Dashboard
+            Trang chủ
           </h1>
 
           <p className="text-slate-500 mt-2">
@@ -342,7 +316,7 @@ text-xs
 text-slate-500
 "
                 >
-                   {user?.username || "Chưa đăng nhập"}
+                  {user?.username || "Chưa đăng nhập"}
                 </p>
               </div>
             </button>
@@ -599,132 +573,55 @@ duration-300
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Biểu đồ */}
-        <div className="bg-white rounded-xl shadow-sm border p-6">
-          <h2 className="text-xl font-bold mb-5">
-            Biểu đồ số lượng theo danh mục
-          </h2>
-
-          <ResponsiveContainer width="100%" height={320}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-
-              <XAxis dataKey="category" />
-
-              <YAxis />
-
-              <Tooltip />
-
-              <Bar dataKey="quantity" fill="#2563eb" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
 
         {/* Sản phẩm mới nhất */}
-        <div className="bg-white rounded-xl shadow-sm border p-6">
-          <h2 className="text-xl font-bold mb-5">Khí tài mới nhất</h2>
-
-          <div className="divide-y">
-            {latestProducts.map((item: any) => (
-              <div
-                key={item.id}
-                className="flex justify-between items-center py-4"
-              >
-                <div>
-                  <p className="font-semibold text-slate-800">{item.name}</p>
-
-                  <p className="text-sm text-slate-500">
-                    {item.category?.name}
-                  </p>
-                </div>
-
-                <span className="text-sm text-slate-500">
-                  {new Date(item.createdAt).toLocaleDateString()}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Biểu đồ cột ngang */}
 
         <div className="bg-white rounded-xl shadow-sm border p-6">
-          <h2 className="text-xl font-bold mb-5">Vũ khí theo đầu mối</h2>
+  <h2 className="text-xl font-bold mb-6">
+    Chi tiết số lượng vũ khí
+  </h2>
 
-          <ResponsiveContainer width="100%" height={350}>
-            <BarChart data={warehouseChart} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" />
+  <div className="space-y-6">
+    {weaponSummary.map((category: any) => (
+      <div key={category.category}>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-bold text-lg text-slate-800">
+            {category.category}
+          </h3>
 
-              <XAxis type="number" />
-
-              <YAxis dataKey="warehouseName" type="category" width={90} />
-
-              <Tooltip />
-
-              <Bar dataKey="total" fill="#2563eb" radius={[0, 6, 6, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <span className="bg-blue-100 px-3 py-1 rounded-full text-sm font-semibold">
+            {category.total}
+          </span>
         </div>
+
+        <div className="space-y-2">
+          {category.products.map((product: any) => (
+            <div
+              key={product.name}
+              className="flex items-center justify-between border-b pb-2"
+            >
+              <span className="text-slate-600">
+                {product.name}
+              </span>
+
+              <span className="font-semibold">
+                {product.quantity}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
 
         {/* Biểu đồ tròn */}
 
         <div className="bg-white rounded-xl shadow-sm border p-6">
-          <h2 className="text-xl font-bold mb-5">Tỷ lệ vũ khí theo đầu mối</h2>
-
-          <div className="flex items-center">
-            <div className="w-2/3 h-[350px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={warehouseChart}
-                    dataKey="total"
-                    nameKey="warehouseName"
-                    outerRadius={110}
-                    label={({ percent }) =>
-                      `${((percent ?? 0) * 100).toFixed(1)}%`
-                    }
-                  >
-                    {warehouseChart.map((_: any, index: number) => (
-                      <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Chú thích */}
-
-            <div className="w-1/3 space-y-3">
-              {warehouseChart.map((item: any, index: number) => (
-                <div
-                  key={item.warehouseId}
-                  className="flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-4 h-4 rounded"
-                      style={{
-                        backgroundColor: COLORS[index % COLORS.length],
-                      }}
-                    />
-
-                    <span className="font-medium">{item.warehouseName}</span>
-                  </div>
-
-                  <span className="font-bold">{item.total}</span>
-                </div>
-              ))}
-              <hr className="my-2" />
-              <span className="font-bold">
-                <span className="mr-2">Tổng:</span>
-                <span>
-                  {warehouseChart.reduce((sum, item) => sum + item.total, 0)}
-                </span>
-              </span>
-            </div>
-          </div>
+          <h2 className="text-xl font-bold mb-5"></h2>
         </div>
       </div>
       <div className="bg-white rounded-xl shadow-sm border p-6">

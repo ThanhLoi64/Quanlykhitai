@@ -80,7 +80,7 @@ export default function Layout() {
         >
           <NavLink to="/dashboard" className={menuClass}>
             <Home size={20} />
-            {!collapsed && <span>Dashboard</span>}
+            {!collapsed && <span>Trang chủ</span>}
           </NavLink>
           <NavLink to="/categories" className={menuClass}>
             <Tags size={20} />
