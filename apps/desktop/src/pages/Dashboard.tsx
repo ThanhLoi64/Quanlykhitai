@@ -25,10 +25,9 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [userAnchor, setUserAnchor] = useState<null | HTMLElement>(null);
   const [weaponSummary, setWeaponSummary] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<
-  "category" | "stock" | "issued"
->("category");
-
+  const [activeTab, setActiveTab] = useState<"category" | "stock" | "issued">(
+    "category",
+  );
 
   const user = useMemo(() => {
     const data = localStorage.getItem("user");
@@ -57,34 +56,35 @@ export default function Dashboard() {
     navigate("/login");
   };
   useEffect(() => {
-   api.get("/products").then((res) => {
-  const data = res.data;
+    api.get("/products").then((res) => {
+      const data = res.data;
+      setProducts(data.length);
 
-  const grouped: any = {};
+      const grouped: any = {};
 
-  data.forEach((product: any) => {
-    const categoryName = product.category?.name || "Khác";
+      data.forEach((product: any) => {
+        const categoryName = product.category?.name || "Khác";
 
-    if (!grouped[categoryName]) {
-      grouped[categoryName] = {
-        category: categoryName,
-        total: 0,
-        products: [],
-      };
-    }
+        if (!grouped[categoryName]) {
+          grouped[categoryName] = {
+            category: categoryName,
+            total: 0,
+            products: [],
+          };
+        }
 
-    const quantity = product.details.length;
+        const quantity = product.details.length;
 
-    grouped[categoryName].products.push({
-      name: product.name,
-      quantity,
+        grouped[categoryName].products.push({
+          name: product.name,
+          quantity,
+        });
+
+        grouped[categoryName].total += quantity;
+      });
+
+      setWeaponSummary(Object.values(grouped));
     });
-
-    grouped[categoryName].total += quantity;
-  });
-
-  setWeaponSummary(Object.values(grouped));
-});
 
     api.get("/categories").then((res) => {
       setCategories(res.data.length);
@@ -576,52 +576,73 @@ duration-300
 
         {/* Sản phẩm mới nhất */}
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
         {/* Biểu đồ cột ngang */}
 
         <div className="bg-white rounded-xl shadow-sm border p-6">
-  <h2 className="text-xl font-bold mb-6">
-    Chi tiết số lượng vũ khí
-  </h2>
+          <h2 className="text-xl font-bold mb-6">Chi tiết số lượng vũ khí</h2>
 
-  <div className="space-y-6">
-    {weaponSummary.map((category: any) => (
-      <div key={category.category}>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-bold text-lg text-slate-800">
-            {category.category}
-          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            {weaponSummary.slice(0, 3).map((category: any) => (
+              <div
+                key={category.category}
+                className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm "
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <p className="text-sm font-medium text-slate-400">
+                      Danh mục
+                    </p>
 
-          <span className="bg-blue-100 px-3 py-1 rounded-full text-sm font-semibold">
-            {category.total}
-          </span>
-        </div>
+                    <h3 className="mt-1 text-lg font-bold text-slate-800">
+                      {category.category}
+                    </h3>
+                  </div>
 
-        <div className="space-y-2">
-          {category.products.map((product: any) => (
-            <div
-              key={product.name}
-              className="flex items-center justify-between border-b pb-2"
-            >
-              <span className="text-slate-600">
-                {product.name}
-              </span>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                    📦
+                  </div>
+                </div>
 
-              <span className="font-semibold">
-                {product.quantity}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    ))}
-  </div>
-</div>
+                {/* Total */}
+                <div className="mb-5 rounded-xl bg-slate-50 px-4 py-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-500">Tổng số</span>
 
-        {/* Biểu đồ tròn */}
+                    <span className="text-xl font-bold text-blue-600">
+                      {category.total}
+                    </span>
+                  </div>
+                </div>
 
-        <div className="bg-white rounded-xl shadow-sm border p-6">
-          <h2 className="text-xl font-bold mb-5"></h2>
+                {/* Products */}
+                <div className="space-y-3">
+                  {category.products.map((product: any) => (
+                    <div
+                      key={product.name}
+                      className="flex items-center justify-between rounded-lg px-3 py-2 transition-colors hover:bg-slate-50"
+                    >
+                      <span className="text-sm text-slate-600">
+                        {product.name}
+                      </span>
+
+                      <span className="min-w-[40px] rounded-lg bg-slate-100 px-2 py-1 text-center text-sm font-semibold text-slate-700">
+                        {product.quantity}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Footer */}
+                <div className="mt-5 border-t border-slate-100 pt-4">
+                  <button className="text-sm font-medium text-blue-600 transition-colors hover:text-blue-700">
+                    Xem chi tiết →
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
       <div className="bg-white rounded-xl shadow-sm border p-6">
