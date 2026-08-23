@@ -13,10 +13,13 @@ export default function Inventory() {
   const [items, setItems] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [warehouseId, setWarehouseId] = useState("");
-
+  const [selectedCategory, setSelectedCategory] = useState<number | "all">(
+    "all",
+  );
   const [productId, setProductId] = useState("");
   const [serialNumber, setSerialNumber] = useState("");
   const [open, setOpen] = useState(false);
+  const [openx, setOpenx] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [openImportMenu, setOpenImportMenu] = useState(false);
@@ -66,15 +69,15 @@ export default function Inventory() {
             params.value === "IN_STOCK"
               ? "success"
               : params.value === "REPAIR"
-              ? "warning"
-              : "error"
+                ? "warning"
+                : "error"
           }
           label={
             params.value === "IN_STOCK"
               ? "Trong kho"
               : params.value === "REPAIR"
-              ? "Sửa chữa"
-              : "Đã cấp"
+                ? "Sửa chữa"
+                : "Đã cấp"
           }
         />
       ),
@@ -95,7 +98,17 @@ export default function Inventory() {
           >
             Sửa
           </Button>
-          {/* <Button
+          <Button
+            onClick={() => openEditModalx(params.row.raw)}
+            size="small"
+            variant="contained"
+            color="warning"
+            startIcon={<Edit />}
+          >
+            Xuất kho
+          </Button>
+          {/* <Button 
+
             onClick={() => handleDelete(params.row.raw.id)}
             size="small"
             color="error"
@@ -190,6 +203,13 @@ export default function Inventory() {
     setSerialNumber(item.serialNumber || "");
     setOpen(true);
   }
+  function openEditModalx(item: any) {
+    setEditId(item.id);
+    setProductId(String(item.productId || item.product?.id || ""));
+    setWarehouseId(String(item.warehouseId || item.warehouse?.id || ""));
+    setSerialNumber(item.serialNumber || "");
+    setOpenx(true);
+  }
 
   async function save() {
     if (!productId || !serialNumber) {
@@ -275,7 +295,13 @@ export default function Inventory() {
     link.click();
   }
   const filteredItems = items.filter((item) => {
+    const matchCategory =
+      selectedCategory === "all" ||
+      item.product?.categoryId === Number(selectedCategory) ||
+      item.product?.category?.id === Number(selectedCategory);
+
     return (
+      matchCategory &&
       (!filters.productId || item.productId === Number(filters.productId)) &&
       (!filters.warehouseId ||
         item.warehouseId === Number(filters.warehouseId)) &&
@@ -362,12 +388,88 @@ export default function Inventory() {
 
       {/* TABLE */}
 
+      {/* CATEGORY TABS */}
+
       <div className="bg-white rounded-xl shadow overflow-hidden">
+        <div className="border-b">
+          <div className="px-4 pt-2">
+            <div className="flex items-center gap-2 overflow-x-auto">
+              {/* TẤT CẢ */}
+              <button
+                onClick={() => setSelectedCategory("all")}
+                className={`
+            px-5 py-3 font-semibold whitespace-nowrap border-b-2 transition
+            ${
+              selectedCategory === "all"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-slate-500 hover:text-blue-600"
+            }
+          `}
+              >
+                Tất cả
+                <span className="ml-2 rounded-full bg-slate-100 px-2 py-1 text-xs">
+                  {items.length}
+                </span>
+              </button>
+
+              {/* CÁC DANH MỤC */}
+              {[
+                ...new Map(
+                  products.map((p) => [
+                    p.category?.id ?? p.categoryId,
+                    p.category,
+                  ]),
+                ).values(),
+              ]
+                .filter(Boolean)
+                .map((category: any) => {
+                  const count = items.filter(
+                    (item) =>
+                      item.product?.categoryId === category.id ||
+                      item.product?.category?.id === category.id,
+                  ).length;
+
+                  return (
+                    <button
+                      key={category.id}
+                      onClick={() => setSelectedCategory(category.id)}
+                      className={`
+                  px-5 py-3 font-semibold whitespace-nowrap
+                  border-b-2 transition
+                  ${
+                    selectedCategory === category.id
+                      ? "border-blue-600 text-blue-600"
+                      : "border-transparent text-slate-500 hover:text-blue-600"
+                  }
+                `}
+                    >
+                      {category.name}
+
+                      <span
+                        className={`
+                    ml-2 rounded-full px-2 py-1 text-xs
+                    ${
+                      selectedCategory === category.id
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-slate-100 text-slate-600"
+                    }
+                  `}
+                      >
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+            </div>
+          </div>
+        </div>
+
+        {/* TABLE */}
+
         <Box
           sx={{
             height: 550,
             bgcolor: "white",
-            borderRadius: 2,
           }}
         >
           <DataGrid
@@ -463,6 +565,61 @@ export default function Inventory() {
                 className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
               >
                 {editId ? "Lưu thay đổi" : "Nhập kho"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {openx && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-xl p-6 relative">
+            <button
+              onClick={() => setOpenx(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-red-500 text-xl"
+            >
+              ✕
+            </button>
+
+            <h2 className="text-xl font-bold mb-6">
+              {editId
+                ? "Xuất kho vũ khí - khí tài"
+                : "Xuất kho vũ khí - khí tài"}
+            </h2>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label>Xuất về kho</label>
+                <select
+                  className="w-full border rounded p-2 mt-1"
+                  value={warehouseId}
+                  onChange={(e) => setWarehouseId(e.target.value)}
+                >
+                  <option value="">Chọn</option>
+                  {warehouses.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setOpenx(false);
+                  setEditId(null);
+                }}
+                className="px-5 py-2 rounded-lg border"
+              >
+                Hủy
+              </button>
+
+              <button
+                onClick={save}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+              >
+                {editId ? "Lưu thay đổi" : "Xuất kho"}
               </button>
             </div>
           </div>

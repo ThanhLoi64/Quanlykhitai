@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 
-
 export default function Layout() {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -99,11 +98,6 @@ export default function Layout() {
             <ClipboardList size={30} />
             {!collapsed && <span>Đăng ký sử dụng vũ khí - khí tài</span>}
           </NavLink>
-
-          <NavLink to="/owners" className={menuClass}>
-            <Users size={20} />
-            {!collapsed && <span>Danh sách Quân nhân</span>}
-          </NavLink>
           <NavLink to="/warehouses" className={menuClass}>
             <ListCheck size={20} />
             {!collapsed && <span>Danh sách kho</span>}
@@ -111,6 +105,10 @@ export default function Layout() {
           <NavLink to="/broken-watching" className={menuClass}>
             <ClockAlert size={30} />
             {!collapsed && <span>Theo dõi hư hỏng - sửa chữa</span>}
+          </NavLink>
+          <NavLink to="/owners" className={menuClass}>
+            <Users size={20} />
+            {!collapsed && <span>Danh sách Quân nhân</span>}
           </NavLink>
           <NavLink to="/logs" className={menuClass}>
             <Activity size={20} />
@@ -120,7 +118,6 @@ export default function Layout() {
             <Info size={20} />
             {!collapsed && <span>Thông tin hệ thống</span>}
           </NavLink>
-
           <button
             onClick={logout}
             className="flex items-center gap-3 px-4 py-1 rounded-lg text-red-400 hover:bg-red-500 hover:text-white transition mt-5"
