@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -52,14 +52,23 @@ where:{
 create(
 dto:CreateCategoryDto
 ){
+const name = dto.name.trim();
 
-return this.prisma.category.create({
+return this.prisma.category.findFirst({
+  where: {
+    name: { equals: name, mode: 'insensitive' },
+  },
+}).then((existing) => {
+  if (existing) return existing;
 
-data:{
- name:dto.name,
- description:dto.description
-}
+  return this.prisma.category.create({
 
+    data:{
+      name,
+      description:dto.description
+    }
+
+  });
 });
 
 }
@@ -72,6 +81,17 @@ update(
   id:number,
   dto:UpdateCategoryDto
 ){
+const name = dto.name?.trim();
+
+return this.prisma.category.findFirst({
+  where: {
+    name: name ? { equals: name, mode: 'insensitive' } : undefined,
+    NOT: { id },
+  },
+}).then((existing) => {
+  if (existing) {
+    throw new ConflictException('Tên danh mục đã tồn tại (không phân biệt hoa thường)');
+  }
 
   return this.prisma.category.update({
 
@@ -80,11 +100,12 @@ update(
     },
 
     data:{
-      name:dto.name,
+      name,
       description:dto.description
     }
 
   });
+});
 
 }
 

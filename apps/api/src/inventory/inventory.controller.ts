@@ -17,6 +17,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { LogService } from '../log/log.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
+import { CreateTransferDto } from './dto/create-transfer.dto';
 
 @ApiBearerAuth()
 @ApiTags('Inventory')
@@ -36,6 +37,34 @@ export class InventoryController {
   @Get()
   findAll() {
     return this.service.findAll();
+  }
+
+  @Get('transfer/options')
+  transferOptions() {
+    return this.service.transferOptions();
+  }
+
+  @Get('transfer/incoming')
+  incomingTransfers() {
+    return this.service.incomingTransfers();
+  }
+
+  @Post('transfer')
+  async createTransfer(@Req() req: any, @Body() dto: CreateTransferDto) {
+    const transfer = await this.service.createTransfer(dto);
+    await this.logService.create(req.user, 'Tạo phiếu xuất kho', {
+      productDetailId: dto.productDetailId,
+      toWarehouseId: dto.toWarehouseId,
+    });
+    return transfer;
+  }
+
+  @Patch('transfer/:id/respond')
+  respondToTransfer(
+    @Param('id') id: string,
+    @Body() body: { accepted?: boolean },
+  ) {
+    return this.service.respondToTransfer(Number(id), body.accepted === true);
   }
 
   @Post()

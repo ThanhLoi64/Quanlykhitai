@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import api from "../api/api";
 import {
   Package,
@@ -22,12 +22,12 @@ export default function Dashboard() {
   const [repairs, setRepairs] = useState(0);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [incomingTransfers, setIncomingTransfers] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const viewedNotificationIds = useRef(new Set<string>());
   const navigate = useNavigate();
   const [userAnchor, setUserAnchor] = useState<null | HTMLElement>(null);
   const [weaponSummary, setWeaponSummary] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<"category" | "stock" | "issued">(
-    "category",
-  );
 
   const user = useMemo(() => {
     const data = localStorage.getItem("user");
@@ -101,11 +101,20 @@ export default function Dashboard() {
     });
   }, []);
 
+  useEffect(() => {
+    loadNotifications();
+    const intervalId = window.setInterval(loadNotifications, 10000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
   async function loadNotifications() {
     try {
-      const res = await api.get("/logs");
+      const [logsRes, transfersRes] = await Promise.all([
+        api.get("/logs"),
+        api.get("/inventory/transfer/incoming"),
+      ]);
 
-      const latest = res.data
+      const latest = logsRes.data
         .sort(
           (a: any, b: any) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
@@ -113,11 +122,35 @@ export default function Dashboard() {
         .slice(0, 5);
 
       setNotifications(latest);
+      setIncomingTransfers(transfersRes.data);
+
+      const notificationIds = [
+        ...latest.map((log: any) => `log-${log.id}`),
+        ...transfersRes.data.map((transfer: any) => `transfer-${transfer.id}`),
+      ];
+      setUnreadCount(
+        notificationIds.filter((id) => !viewedNotificationIds.current.has(id)).length,
+      );
+      return { latest, transfers: transfersRes.data };
     } catch {}
   }
+
+  const respondToTransfer = async (id: number, accepted: boolean) => {
+    try {
+      await api.patch(`/inventory/transfer/${id}/respond`, { accepted });
+      setIncomingTransfers((current) =>
+        current.filter((transfer) => transfer.id !== id),
+      );
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Không thể xử lý phiếu chuyển");
+    }
+  };
   const handleOpen = async (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
-    await loadNotifications();
+    const loaded = await loadNotifications();
+    loaded?.latest.forEach((log: any) => viewedNotificationIds.current.add(`log-${log.id}`));
+    loaded?.transfers.forEach((transfer: any) => viewedNotificationIds.current.add(`transfer-${transfer.id}`));
+    setUnreadCount(0);
   };
 
   const handleClose = () => {
@@ -163,7 +196,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-8 pt-2">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="sticky top-0 z-40 -mx-8 bg-slate-100 px-8 pt-2 pb-1 flex items-center justify-between mb-2">
         <div>
           <h1 className="text-3xl font-bold text-slate-800 tracking-tight">
             Trang chủ
@@ -175,7 +208,7 @@ export default function Dashboard() {
         </div>
         <div className="flex items-center justify-center mb-8">
           <Badge
-            badgeContent={notifications.length}
+            badgeContent={unreadCount}
             color="error"
             overlap="circular"
           >
@@ -207,46 +240,86 @@ export default function Dashboard() {
               },
             }}
           >
-            {notifications.length === 0 ? (
+            {notifications.length === 0 && incomingTransfers.length === 0 ? (
               <MenuItem className="text-slate-500">Không có thông báo</MenuItem>
             ) : (
-              notifications.map((log) => (
-                <MenuItem
-                  key={log.id}
-                  sx={{
-                    whiteSpace: "normal",
-                    alignItems: "flex-start",
-                    py: 1.5,
-                    borderBottom: "1px solid #f1f5f9",
-                  }}
-                >
-                  <div className="flex gap-3">
-                    <div
-                      className="
+              <>
+                {incomingTransfers.map((transfer) => (
+                  <MenuItem
+                    key={`transfer-${transfer.id}`}
+                    sx={{
+                      whiteSpace: "normal",
+                      alignItems: "flex-start",
+                      py: 1.5,
+                      borderBottom: "1px solid #f1f5f9",
+                    }}
+                  >
+                    <div className="w-full">
+                      <div className="font-semibold text-slate-800">
+                        Yêu cầu xuất kho
+                      </div>
+                      <div className="text-sm text-slate-600 mt-1">
+                        {transfer.fromUsername || "Tài khoản khác"} muốn xuất vũ
+                        khí {transfer.product?.name || "-"} về kho
+                      </div>
+                      <div className="text-xs text-slate-400 mt-1">
+                        Số hiệu: {transfer.productDetail?.serialNumber || "-"}
+                      </div>
+                      <div className="flex gap-2 mt-3">
+                        <button
+                          className="rounded bg-green-600 px-3 py-1 text-xs text-white"
+                          onClick={() => respondToTransfer(transfer.id, true)}
+                        >
+                          Chấp nhận
+                        </button>
+                        <button
+                          className="rounded bg-red-600 px-3 py-1 text-xs text-white"
+                          onClick={() => respondToTransfer(transfer.id, false)}
+                        >
+                          Từ chối
+                        </button>
+                      </div>
+                    </div>
+                  </MenuItem>
+                ))}
+                {notifications.map((log) => (
+                  <MenuItem
+                    key={log.id}
+                    sx={{
+                      whiteSpace: "normal",
+                      alignItems: "flex-start",
+                      py: 1.5,
+                      borderBottom: "1px solid #f1f5f9",
+                    }}
+                  >
+                    <div className="flex gap-3">
+                      <div
+                        className="
               mt-1 
               w-2 
               h-2 
               rounded-full 
               bg-blue-600
               "
-                    />
+                      />
 
-                    <div>
-                      <div className="font-semibold text-slate-800">
-                        {log.action}
-                      </div>
+                      <div>
+                        <div className="font-semibold text-slate-800">
+                          {log.action}
+                        </div>
 
-                      <div className="text-sm text-slate-600 mt-1">
-                        {log.detail}
-                      </div>
+                        <div className="text-sm text-slate-600 mt-1">
+                          {log.detail}
+                        </div>
 
-                      <div className="text-xs text-slate-400 mt-2">
-                        {new Date(log.createdAt).toLocaleString("vi-VN")}
+                        <div className="text-xs text-slate-400 mt-2">
+                          {new Date(log.createdAt).toLocaleString("vi-VN")}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </MenuItem>
-              ))
+                  </MenuItem>
+                ))}
+              </>
             )}
 
             <MenuItem

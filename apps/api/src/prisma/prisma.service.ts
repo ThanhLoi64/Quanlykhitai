@@ -7,7 +7,7 @@ export class PrismaService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy
 {
-  private readonly tenantStorage = new AsyncLocalStorage<number>();
+  private readonly tenantStorage = new AsyncLocalStorage<number | null>();
     private scopedClient: any;
   private readonly modelNames = new Set([
     'user',
@@ -92,7 +92,15 @@ export class PrismaService
   }
 
   runWithTenant<T>(tenantId: number | undefined, callback: () => T): T {
-    return this.tenantStorage.run(tenantId as number, callback);
+    return this.tenantStorage.run(tenantId ?? null, callback);
+  }
+
+  getCurrentTenantId(): number | null | undefined {
+    return this.tenantStorage.getStore();
+  }
+
+  runWithoutTenant<T>(callback: () => T): T {
+    return this.tenantStorage.run(null, callback);
   }
 
   private addTenantToNestedCreates(value: any, tenantId: number): any {
@@ -110,6 +118,6 @@ export class PrismaService
   }
 
   async $transaction(arg: any, options?: any): Promise<any> {
-    return this.scopedClient.$transaction(arg, options);
+    return super.$transaction(arg, options);
   }
 }

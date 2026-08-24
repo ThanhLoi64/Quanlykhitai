@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { ConflictException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateWarehouseDto } from "./dto/create-warehouse.dto";
 import { UpdateWarehouseDto } from "./dto/update-warehouse.dto";
@@ -16,15 +16,20 @@ export class WarehouseService {
   }
 
   create(dto: CreateWarehouseDto) {
-    return this.prisma.warehouse.create({
-      data: dto,
+    return this.prisma.warehouse.create({ data: dto }).catch((error) => {
+      if (error?.code === "P2002") {
+        throw new ConflictException("Tên kho đã tồn tại trong đơn vị hiện tại");
+      }
+      throw error;
     });
   }
 
   update(id: number, dto: UpdateWarehouseDto) {
-    return this.prisma.warehouse.update({
-      where: { id },
-      data: dto,
+    return this.prisma.warehouse.update({ where: { id }, data: dto }).catch((error) => {
+      if (error?.code === "P2002") {
+        throw new ConflictException("Tên kho đã tồn tại trong đơn vị hiện tại");
+      }
+      throw error;
     });
   }
 

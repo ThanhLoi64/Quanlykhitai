@@ -12,6 +12,9 @@ export default function Inventory() {
   const [products, setProducts] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [transferAccounts, setTransferAccounts] = useState<any[]>([]);
+  const [transferTenantId, setTransferTenantId] = useState("");
+  const [transferWarehouseId, setTransferWarehouseId] = useState("");
   const [warehouseId, setWarehouseId] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<number | "all">(
     "all",
@@ -105,7 +108,7 @@ export default function Inventory() {
             Sửa
           </Button>
           <Button
-            onClick={() => openEditModalx(params.row.raw)}
+            onClick={() => openTransferModal(params.row.raw)}
             size="small"
             variant="contained"
             color="warning"
@@ -144,6 +147,45 @@ export default function Inventory() {
   useEffect(() => {
     load();
   }, []);
+
+  async function openTransferModal(item: any) {
+    setEditId(item.id);
+    setTransferTenantId("");
+    setTransferWarehouseId("");
+    try {
+      const response = await api.get("/inventory/transfer/options");
+      setTransferAccounts(response.data);
+      setOpenx(true);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Không tải được danh sách tài khoản nhận");
+    }
+  }
+
+  async function createTransfer() {
+    if (!editId || !transferTenantId || !transferWarehouseId) {
+      toast.error("Vui lòng chọn tài khoản và kho nhận");
+      return;
+    }
+
+    try {
+      console.debug("[TRANSFER DEBUG] payload", {
+        productDetailId: editId,
+        selectedTenantId: transferTenantId,
+        selectedWarehouseId: transferWarehouseId,
+      });
+      await api.post("/inventory/transfer", {
+        productDetailId: editId,
+        toWarehouseId: Number(transferWarehouseId),
+      });
+      toast.success("Đã tạo phiếu xuất kho, chờ tài khoản nhận xác nhận");
+      setOpenx(false);
+      setEditId(null);
+      load();
+    } catch (err: any) {
+      console.error("[TRANSFER DEBUG] response", err.response?.data, err.config?.data);
+      toast.error(err.response?.data?.message || "Không thể tạo phiếu xuất kho");
+    }
+  }
 
   // async function handleDelete(id: number) {
   //   if (!window.confirm("Bạn có chắc muốn xóa dòng này?")) return;
@@ -213,15 +255,6 @@ export default function Inventory() {
     setImportOrder(item.importOrder || "");
     setOpen(true);
   }
-  function openEditModalx(item: any) {
-    setEditId(item.id);
-    setProductId(String(item.productId || item.product?.id || ""));
-    setWarehouseId(String(item.warehouseId || item.warehouse?.id || ""));
-    setSerialNumber(item.serialNumber || "");
-    setImportOrder(item.importOrder || "");
-    setOpenx(true);
-  }
-
   async function save() {
     if (!productId || !serialNumber) {
       toast.error("Vui lòng nhập đầy đủ");
@@ -613,18 +646,39 @@ export default function Inventory() {
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label>Xuất về kho</label>
+                <label>Tài khoản nhận</label>
                 <select
                   className="w-full border rounded p-2 mt-1"
-                  value={warehouseId}
-                  onChange={(e) => setWarehouseId(e.target.value)}
+                  value={transferTenantId}
+                  onChange={(e) => {
+                    setTransferTenantId(e.target.value);
+                    setTransferWarehouseId("");
+                  }}
                 >
-                  <option value="">Chọn</option>
-                  {warehouses.map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {w.name}
+                  <option value="">Chọn tài khoản</option>
+                  {transferAccounts.map((account) => (
+                    <option key={account.tenantId} value={account.tenantId}>
+                      {account.username} - {account.fullName} (tenant {account.tenantId})
                     </option>
                   ))}
+                </select>
+              </div>
+              <div>
+                <label>Đơn vị nhận</label>
+                <select
+                  className="w-full border rounded p-2 mt-1"
+                  value={transferWarehouseId}
+                  onChange={(e) => setTransferWarehouseId(e.target.value)}
+                  disabled={!transferTenantId}
+                >
+                  <option value="">Chọn kho nhận</option>
+                  {transferAccounts
+                    .find((account) => account.tenantId === Number(transferTenantId))
+                    ?.warehouses.map((warehouse: any) => (
+                      <option key={warehouse.id} value={warehouse.id}>
+                        {warehouse.name}
+                      </option>
+                    ))}
                 </select>
               </div>
             </div>
@@ -641,10 +695,10 @@ export default function Inventory() {
               </button>
 
               <button
-                onClick={save}
+                onClick={createTransfer}
                 className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
               >
-                {editId ? "Lưu thay đổi" : "Xuất kho"}
+                Xuất kho
               </button>
             </div>
           </div>

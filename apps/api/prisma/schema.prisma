@@ -124,6 +124,7 @@ model ProductDetail {
   warehouse         Warehouse?     @relation(fields: [warehouseId], references: [id])
   registrations     Registration[]
   repairRecords     RepairRecord[]
+  transfers         Transfer[]
 
   @@unique([id, tenantId])
 }
@@ -174,16 +175,19 @@ model AppLog {
 }
 
 model Transfer {
-  id           Int            @id @default(autoincrement())
-  productId    Int
-  fromTenantId Int
-  toTenantId   Int
-  status       TransferStatus @default(PENDING)
-  note         String?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  tenantId     Int            @default(1)
-  product      Product        @relation(fields: [productId], references: [id])
+  id              Int            @id @default(autoincrement())
+  productId       Int
+  productDetailId Int
+  fromTenantId    Int
+  toTenantId      Int
+  toWarehouseId   Int
+  status          TransferStatus @default(PENDING)
+  note            String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  tenantId        Int            @default(1)
+  product         Product        @relation(fields: [productId], references: [id])
+  productDetail   ProductDetail  @relation(fields: [productDetailId], references: [id])
 
   @@unique([id, tenantId])
   @@index([tenantId, status])
