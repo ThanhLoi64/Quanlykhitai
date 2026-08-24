@@ -29,9 +29,10 @@ secretOrKey:'SECRET_KEY_CHANGE_ME',
 validate(payload:any){
 
 return {
-  id: payload.sub,
+  id: payload.userId ?? payload.sub,
   username: payload.username,
   role: payload.role,
+  tenantId: payload.tenantId,
 };
 
 }

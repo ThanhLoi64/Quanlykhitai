@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 
 import { AppService } from './app.service';
 
@@ -13,6 +14,7 @@ import { ProductDetailModule } from './product-detail/product-detail.module';
 import { WarehouseModule } from './warehouse/warehouse.module';
 import { RepairModule } from './repair/repair.module';
 import { LogModule } from './log/log.module';
+import { TenantContextInterceptor } from './prisma/tenant-context.interceptor';
 
 
 
@@ -35,6 +37,10 @@ import { LogModule } from './log/log.module';
 
   providers: [
     AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TenantContextInterceptor,
+    },
   ],
 })
 export class AppModule {}

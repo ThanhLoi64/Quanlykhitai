@@ -31,6 +31,18 @@
 $ pnpm install
 ```
 
+## Multi-tenant database
+
+The application uses one Neon PostgreSQL database configured by `DATABASE_URL`.
+Every tenant-owned record stores a numeric `tenantId`. Login puts `userId`,
+`tenantId`, and `role` in the JWT; NestJS derives the tenant from that token and
+Prisma automatically scopes reads and writes. The client must never send a
+`tenantId` to select a tenant.
+
+`Transfer` records support moving a product between tenants. A transfer starts
+as `PENDING`; only the backend changes the product tenant after the receiving
+tenant accepts it.
+
 ## Compile and run the project
 
 ```bash

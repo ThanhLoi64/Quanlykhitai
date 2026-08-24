@@ -67,6 +67,8 @@ export class InventoryService {
 
         militaryEquipment: dto.militaryEquipment,
 
+        importOrder: dto.importOrder,
+
         product: {
           connect: {
             id: dto.productId,
@@ -116,6 +118,7 @@ export class InventoryService {
           accessory: row.accessory,
           equipment: row.equipment,
           militaryEquipment: row.militaryEquipment,
+          importOrder: row.importOrder,
           status: row.status || "IN_STOCK",
           product: { connect: { id: productId } },
           warehouse: { connect: { id: warehouseId } },
@@ -161,6 +164,7 @@ export class InventoryService {
       accessory: dto.accessory,
       equipment: dto.equipment,
       militaryEquipment: dto.militaryEquipment,
+      importOrder: dto.importOrder,
       status: dto.status,
     };
 

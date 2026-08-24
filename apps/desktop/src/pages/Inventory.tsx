@@ -18,6 +18,7 @@ export default function Inventory() {
   );
   const [productId, setProductId] = useState("");
   const [serialNumber, setSerialNumber] = useState("");
+  const [importOrder, setImportOrder] = useState("");
   const [open, setOpen] = useState(false);
   const [openx, setOpenx] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -33,11 +34,11 @@ export default function Inventory() {
     warehouseId: "",
   });
   const columns: GridColDef[] = [
-    {
-      field: "id",
-      headerName: "ID",
-      width: 90,
-    },
+    // {
+    //   field: "id",
+    //   headerName: "ID",
+    //   width: 90,
+    // },
     {
       field: "stt",
       headerName: "STT",
@@ -51,6 +52,11 @@ export default function Inventory() {
     {
       field: "serialNumber",
       headerName: "Số hiệu",
+      flex: 1,
+    },
+    {
+      field: "importOrder",
+      headerName: "Lệnh nhập kho",
       flex: 1,
     },
     {
@@ -173,12 +179,14 @@ export default function Inventory() {
         productId: Number(productId),
         warehouseId: Number(warehouseId),
         serialNumber,
+        importOrder,
       });
 
       toast.success("Nhập kho thành công");
 
       setProductId("");
       setSerialNumber("");
+      setImportOrder("");
 
       setOpen(false); // đóng modal
 
@@ -193,6 +201,7 @@ export default function Inventory() {
     setProductId("");
     setWarehouseId("");
     setSerialNumber("");
+    setImportOrder("");
     setOpen(true);
   }
 
@@ -201,6 +210,7 @@ export default function Inventory() {
     setProductId(String(item.productId || item.product?.id || ""));
     setWarehouseId(String(item.warehouseId || item.warehouse?.id || ""));
     setSerialNumber(item.serialNumber || "");
+    setImportOrder(item.importOrder || "");
     setOpen(true);
   }
   function openEditModalx(item: any) {
@@ -208,6 +218,7 @@ export default function Inventory() {
     setProductId(String(item.productId || item.product?.id || ""));
     setWarehouseId(String(item.warehouseId || item.warehouse?.id || ""));
     setSerialNumber(item.serialNumber || "");
+    setImportOrder(item.importOrder || "");
     setOpenx(true);
   }
 
@@ -235,6 +246,7 @@ export default function Inventory() {
           productId: Number(productId),
           warehouseId: Number(warehouseId),
           serialNumber,
+          importOrder,
         });
         toast.success("Cập nhật thành công");
       } else {
@@ -246,6 +258,7 @@ export default function Inventory() {
       setProductId("");
       setWarehouseId("");
       setSerialNumber("");
+      setImportOrder("");
       setOpen(false);
       load();
     } catch (err: any) {
@@ -270,6 +283,7 @@ export default function Inventory() {
       const rows = rawRows.map((r) => ({
         productName: r["Loại khí tài"],
         serialNumber: r["Số hiệu"],
+        importOrder: r["Lệnh nhập kho"],
         accessory: r["Phụ tùng"],
         equipment: r["Trang cụ"],
         militaryEquipment: r["Quân cụ"],
@@ -318,6 +332,7 @@ export default function Inventory() {
     stt: index + 1,
     product: i.product?.name,
     serialNumber: i.serialNumber,
+    importOrder: i.importOrder || "-",
     accessory: i.accessory || "-",
     equipment: i.equipment || "-",
     militaryEquipment: i.militaryEquipment || "-",
@@ -529,6 +544,16 @@ export default function Inventory() {
                   className="w-full border rounded p-2 mt-1"
                   value={serialNumber}
                   onChange={(e) => setSerialNumber(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label>Lệnh nhập kho</label>
+
+                <input
+                  className="w-full border rounded p-2 mt-1"
+                  value={importOrder}
+                  onChange={(e) => setImportOrder(e.target.value)}
                 />
               </div>
 

@@ -16,10 +16,30 @@ async function main() {
       password: hash,
       fullName: 'Administrator',
       role: UserRole.ADMIN,
+      tenantId: 1,
+    },
+  });
+
+  await prisma.user.upsert({
+    where: {
+      username: 'testuser',
+    },
+    update: {
+      password: hash,
+      tenantId: 2,
+      isActive: true,
+    },
+    create: {
+      username: 'testuser',
+      password: hash,
+      fullName: 'Tai khoan test',
+      role: UserRole.STAFF,
+      tenantId: 2,
     },
   });
 
   console.log('✅ Admin created');
+  console.log('✅ Test account created: testuser / 123456');
 }
 
 main()

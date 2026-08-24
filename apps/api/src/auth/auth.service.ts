@@ -50,8 +50,10 @@ async login(
   // dữ liệu đưa vào token
   const payload = {
     sub: user.id,
+    userId: user.id,
     username: user.username,
     role: user.role,
+    tenantId: user.tenantId,
   };
 
 
@@ -71,6 +73,7 @@ async login(
       username: user.username,
       fullName: user.fullName,
       role: user.role,
+      tenantId: user.tenantId,
     },
 
   };
