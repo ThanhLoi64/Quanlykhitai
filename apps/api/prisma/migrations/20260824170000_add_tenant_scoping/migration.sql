@@ -8,6 +8,46 @@ ALTER TABLE "Product" ADD COLUMN "tenantId" INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE "Registration" ADD COLUMN "tenantId" INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE "Owner" ADD COLUMN "tenantId" INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE "ProductDetail" ADD COLUMN "tenantId" INTEGER NOT NULL DEFAULT 1;
+
+CREATE TABLE "RepairRecord" (
+  "id" SERIAL NOT NULL,
+  "productDetailId" INTEGER NOT NULL,
+  "damageStatus" TEXT,
+  "cause" TEXT,
+  "repairStartDate" TIMESTAMP(3),
+  "severity" TEXT,
+  "repairUnit" TEXT,
+  "receivedDate" TIMESTAMP(3),
+  "note" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL,
+  CONSTRAINT "RepairRecord_pkey" PRIMARY KEY ("id")
+);
+
+ALTER TABLE "RepairRecord"
+  ADD CONSTRAINT "RepairRecord_productDetailId_fkey"
+  FOREIGN KEY ("productDetailId") REFERENCES "ProductDetail"("id")
+  ON DELETE RESTRICT ON UPDATE CASCADE;
+
+CREATE TABLE "Warehouse" (
+  "id" SERIAL NOT NULL,
+  "name" TEXT NOT NULL,
+  "description" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL,
+  CONSTRAINT "Warehouse_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE "AppLog" (
+  "id" SERIAL NOT NULL,
+  "userId" INTEGER,
+  "username" TEXT NOT NULL,
+  "action" TEXT NOT NULL,
+  "detail" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "AppLog_pkey" PRIMARY KEY ("id")
+);
+
 ALTER TABLE "RepairRecord" ADD COLUMN "tenantId" INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE "Warehouse" ADD COLUMN "tenantId" INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE "AppLog" ADD COLUMN "tenantId" INTEGER NOT NULL DEFAULT 1;

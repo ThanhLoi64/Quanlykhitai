@@ -31,6 +31,27 @@
 $ pnpm install
 ```
 
+## Database configuration
+
+Development reads `DATABASE_URL` from `apps/api/.env`. Set it to the PostgreSQL
+connection used by your local database (DBeaver is only the database client),
+for example:
+
+```env
+DATABASE_URL="postgresql://postgres:your_password@localhost:5432/quanlykhitai"
+```
+
+The application loads `.env` on startup. In production, provide
+`DATABASE_URL` through the hosting environment; environment variables already
+present on the process take precedence over `.env`.
+
+After changing the local database URL, run migrations from `apps/api`:
+
+```bash
+pnpm prisma migrate deploy
+pnpm prisma db seed
+```
+
 ## Multi-tenant database
 
 The application uses one Neon PostgreSQL database configured by `DATABASE_URL`.

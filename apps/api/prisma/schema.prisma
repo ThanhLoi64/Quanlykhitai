@@ -15,10 +15,24 @@ model User {
   role      UserRole @default(STAFF)
   isActive  Boolean  @default(true)
   tenantId  Int      @default(1)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([id, tenantId])
+}
+
+model Tenant {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  parentId  Int?
+  parent    Tenant?  @relation("TenantTree", fields: [parentId], references: [id])
+  children  Tenant[] @relation("TenantTree")
+  users     User[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([parentId])
 }
 
 model Category {
@@ -180,7 +194,10 @@ model Transfer {
   productDetailId Int
   fromTenantId    Int
   toTenantId      Int
+  toUserId        Int?
   toWarehouseId   Int
+  approvalTenantId Int            @default(1)
+  approvalUserId   Int            @default(1)
   status          TransferStatus @default(PENDING)
   note            String?
   createdAt       DateTime       @default(now())
@@ -195,8 +212,10 @@ model Transfer {
 }
 
 enum UserRole {
+  SYSADMIN
   ADMIN
   STAFF
+  USER
 }
 
 enum RegistrationStatus {

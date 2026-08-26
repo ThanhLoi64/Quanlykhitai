@@ -44,7 +44,6 @@ export default function Products() {
     name: "",
     unit: "",
     classification: "",
-    quantity: 0,
     storageLocation: "",
     note: "",
     categoryId: 0,
@@ -104,7 +103,6 @@ export default function Products() {
       name: "",
       unit: "",
       classification: "",
-      quantity: 0,
       storageLocation: "",
       note: "",
       categoryId:
@@ -125,7 +123,6 @@ export default function Products() {
       name: row.name,
       unit: row.unit,
       classification: row.classification || "",
-      quantity: row.quantity,
       storageLocation: row.storageLocation || "",
       note: row.note || "",
       categoryId: row.categoryId,
@@ -215,8 +212,8 @@ export default function Products() {
 
     {
       field: "quantity",
-      headerName: "Số lượng",
-      width: 130,
+      headerName: "Số lượng trong kho",
+      width: 160,
     },
 
     {
@@ -436,19 +433,6 @@ export default function Products() {
                 setForm({
                   ...form,
                   classification: e.target.value,
-                })
-              }
-            />
-
-            <input
-              className="border p-2 rounded"
-              placeholder="Số lượng"
-              type="number"
-              value={form.quantity}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  quantity: Number(e.target.value),
                 })
               }
             />

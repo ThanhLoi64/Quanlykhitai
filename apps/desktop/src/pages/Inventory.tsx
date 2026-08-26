@@ -12,9 +12,6 @@ export default function Inventory() {
   const [products, setProducts] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
-  const [transferAccounts, setTransferAccounts] = useState<any[]>([]);
-  const [transferTenantId, setTransferTenantId] = useState("");
-  const [transferWarehouseId, setTransferWarehouseId] = useState("");
   const [warehouseId, setWarehouseId] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<number | "all">(
     "all",
@@ -23,7 +20,6 @@ export default function Inventory() {
   const [serialNumber, setSerialNumber] = useState("");
   const [importOrder, setImportOrder] = useState("");
   const [open, setOpen] = useState(false);
-  const [openx, setOpenx] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [openImportMenu, setOpenImportMenu] = useState(false);
@@ -86,7 +82,7 @@ export default function Inventory() {
               ? "Trong kho"
               : params.value === "REPAIR"
                 ? "Sửa chữa"
-                : "Đã cấp"
+                : "Đã biên chế"
           }
         />
       ),
@@ -106,15 +102,6 @@ export default function Inventory() {
             startIcon={<Edit />}
           >
             Sửa
-          </Button>
-          <Button
-            onClick={() => openTransferModal(params.row.raw)}
-            size="small"
-            variant="contained"
-            color="warning"
-            startIcon={<Edit />}
-          >
-            Xuất kho
           </Button>
           {/* <Button 
 
@@ -147,45 +134,6 @@ export default function Inventory() {
   useEffect(() => {
     load();
   }, []);
-
-  async function openTransferModal(item: any) {
-    setEditId(item.id);
-    setTransferTenantId("");
-    setTransferWarehouseId("");
-    try {
-      const response = await api.get("/inventory/transfer/options");
-      setTransferAccounts(response.data);
-      setOpenx(true);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Không tải được danh sách tài khoản nhận");
-    }
-  }
-
-  async function createTransfer() {
-    if (!editId || !transferTenantId || !transferWarehouseId) {
-      toast.error("Vui lòng chọn tài khoản và kho nhận");
-      return;
-    }
-
-    try {
-      console.debug("[TRANSFER DEBUG] payload", {
-        productDetailId: editId,
-        selectedTenantId: transferTenantId,
-        selectedWarehouseId: transferWarehouseId,
-      });
-      await api.post("/inventory/transfer", {
-        productDetailId: editId,
-        toWarehouseId: Number(transferWarehouseId),
-      });
-      toast.success("Đã tạo phiếu xuất kho, chờ tài khoản nhận xác nhận");
-      setOpenx(false);
-      setEditId(null);
-      load();
-    } catch (err: any) {
-      console.error("[TRANSFER DEBUG] response", err.response?.data, err.config?.data);
-      toast.error(err.response?.data?.message || "Không thể tạo phiếu xuất kho");
-    }
-  }
 
   // async function handleDelete(id: number) {
   //   if (!window.confirm("Bạn có chắc muốn xóa dòng này?")) return;
@@ -516,7 +464,7 @@ export default function Inventory() {
 
         <Box
           sx={{
-            height: 550,
+            height: 500,
             bgcolor: "white",
           }}
         >
@@ -623,82 +571,6 @@ export default function Inventory() {
                 className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
               >
                 {editId ? "Lưu thay đổi" : "Nhập kho"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {openx && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-xl p-6 relative">
-            <button
-              onClick={() => setOpenx(false)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-red-500 text-xl"
-            >
-              ✕
-            </button>
-
-            <h2 className="text-xl font-bold mb-6">
-              {editId
-                ? "Xuất kho vũ khí - khí tài"
-                : "Xuất kho vũ khí - khí tài"}
-            </h2>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label>Tài khoản nhận</label>
-                <select
-                  className="w-full border rounded p-2 mt-1"
-                  value={transferTenantId}
-                  onChange={(e) => {
-                    setTransferTenantId(e.target.value);
-                    setTransferWarehouseId("");
-                  }}
-                >
-                  <option value="">Chọn tài khoản</option>
-                  {transferAccounts.map((account) => (
-                    <option key={account.tenantId} value={account.tenantId}>
-                      {account.username} - {account.fullName} (tenant {account.tenantId})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label>Đơn vị nhận</label>
-                <select
-                  className="w-full border rounded p-2 mt-1"
-                  value={transferWarehouseId}
-                  onChange={(e) => setTransferWarehouseId(e.target.value)}
-                  disabled={!transferTenantId}
-                >
-                  <option value="">Chọn kho nhận</option>
-                  {transferAccounts
-                    .find((account) => account.tenantId === Number(transferTenantId))
-                    ?.warehouses.map((warehouse: any) => (
-                      <option key={warehouse.id} value={warehouse.id}>
-                        {warehouse.name}
-                      </option>
-                    ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={() => {
-                  setOpenx(false);
-                  setEditId(null);
-                }}
-                className="px-5 py-2 rounded-lg border"
-              >
-                Hủy
-              </button>
-
-              <button
-                onClick={createTransfer}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
-              >
-                Xuất kho
               </button>
             </div>
           </div>

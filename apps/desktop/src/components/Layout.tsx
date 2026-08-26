@@ -3,28 +3,24 @@ import {
   Home,
   Shield,
   Warehouse,
+  Send,
   Tags,
   ClipboardList,
   Users,
   Activity,
-  LogOut,
   Menu,
   ChevronLeft,
-  Info,
   ClockAlert,
   ListCheck,
+  UserPlus,
+  Search,
 } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 
 export default function Layout() {
   const [collapsed, setCollapsed] = useState(false);
-
-  function logout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-
-    window.location.href = "/";
-  }
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const canManageChildren = ["SYSADMIN", "ADMIN", "STAFF"].includes(user?.role);
 
   const menuClass = ({ isActive }: { isActive: boolean }) => `
   flex
@@ -81,6 +77,11 @@ export default function Layout() {
             <Home size={20} />
             {!collapsed && <span>Trang chủ</span>}
           </NavLink>
+          <NavLink to="/weapon-search" className={menuClass}>
+            <Search size={20} />
+            {!collapsed && <span>Tra cứu khí tài</span>}
+          </NavLink>
+
           <NavLink to="/categories" className={menuClass}>
             <Tags size={20} />
             {!collapsed && <span>Danh mục</span>}
@@ -93,6 +94,10 @@ export default function Layout() {
           <NavLink to="/inventory" className={menuClass}>
             <Warehouse size={20} />
             {!collapsed && <span>Nhập kho</span>}
+          </NavLink>
+          <NavLink to="/exports" className={menuClass}>
+            <Send size={20} />
+            {!collapsed && <span>Xuất kho</span>}
           </NavLink>
           <NavLink to="/registrations" className={menuClass}>
             <ClipboardList size={30} />
@@ -114,17 +119,16 @@ export default function Layout() {
             <Activity size={20} />
             {!collapsed && <span>Nhật ký hệ thống</span>}
           </NavLink>
-          <NavLink to="/about" className={menuClass}>
+          {canManageChildren && (
+            <NavLink to="/child-accounts" className={menuClass}>
+              <UserPlus size={20} />
+              {!collapsed && <span>Tài khoản cấp dưới</span>}
+            </NavLink>
+          )}
+          {/* <NavLink to="/about" className={menuClass}>
             <Info size={20} />
             {!collapsed && <span>Thông tin hệ thống</span>}
-          </NavLink>
-          <button
-            onClick={logout}
-            className="flex items-center gap-3 px-4 py-1 rounded-lg text-red-400 hover:bg-red-500 hover:text-white transition mt-5"
-          >
-            <LogOut size={20} />
-            {!collapsed && <span>Đăng xuất</span>}
-          </button>
+          </NavLink> */}
           {/* <div className=" text-center text-[0.7rem] text-slate-500 ">
             <span>
               {!collapsed && (

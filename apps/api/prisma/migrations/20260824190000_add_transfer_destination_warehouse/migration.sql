@@ -1,1 +1,0 @@
-ALTER TABLE "Transfer" ADD COLUMN "toWarehouseId" INTEGER NOT NULL;

@@ -19,12 +19,6 @@ export class CreateProductDto {
   })
   classification?: string;
 
-  @ApiProperty({
-    example: 10,
-    description: 'Số lượng',
-  })
-  quantity!: number;
-
   @ApiPropertyOptional({
     example: 'Kho A - Kệ 01',
     description: 'Vị trí lưu kho',

@@ -284,7 +284,7 @@ gap-4
 
                   `}
                           >
-                            {d.status === "ISSUED" ? "Đã cấp" : "Trong kho"}
+                            {d.status === "ISSUED" ? "Đã biên chế" : "Trong kho"}
                           </span>
                         </td>
 
