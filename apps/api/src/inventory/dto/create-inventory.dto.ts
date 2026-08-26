@@ -38,6 +38,12 @@ export class CreateInventoryDto {
   militaryEquipment?: string;
 
   @ApiPropertyOptional({
+    example: 'LENH-2026-001',
+    description: 'Số lệnh nhập kho',
+  })
+  importOrder?: string;
+
+  @ApiPropertyOptional({
     example: 'IN_STOCK',
     description: 'Trạng thái hiện tại của khí tài',
   })

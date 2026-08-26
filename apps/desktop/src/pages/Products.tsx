@@ -13,47 +13,88 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Tabs,
+  Tab,
 } from "@mui/material";
 
 import { Add, Edit, Delete } from "@mui/icons-material";
 
 import { DataGrid } from "@mui/x-data-grid";
-
 import type { GridColDef } from "@mui/x-data-grid";
+
 import { useNavigate } from "react-router-dom";
 
 export default function Products() {
   const [products, setProducts] = useState<any[]>([]);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
-  const navigate = useNavigate();
-  const [openModal, setOpenModal] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
 
+  const [deleteId, setDeleteId] = useState<number | null>(null);
   const [editId, setEditId] = useState<number | null>(null);
 
-  const [categories, setCategories] = useState<any[]>([]);
+  const [openModal, setOpenModal] = useState(false);
+
+  // Tab đang được chọn
+  const [selectedCategory, setSelectedCategory] = useState<number | "all">(
+    "all"
+  );
+
+  const navigate = useNavigate();
 
   const [form, setForm] = useState({
     name: "",
     unit: "",
     classification: "",
-    quantity: 0,
     storageLocation: "",
     note: "",
     categoryId: 0,
   });
+
+  // =========================
+  // LOAD DATA
+  // =========================
+
   async function load() {
-    const res = await api.get("/products");
+    try {
+      const [productRes, categoryRes] = await Promise.all([
+        api.get("/products"),
+        api.get("/categories"),
+      ]);
 
-    setProducts(res.data);
+      setProducts(productRes.data);
+      setCategories(categoryRes.data);
 
-    const cate = await api.get("/categories");
-
-    setCategories(cate.data);
+      // Nếu tab hiện tại không còn tồn tại thì về Tất cả
+      if (
+        selectedCategory !== "all" &&
+        !categoryRes.data.some(
+          (category: any) => category.id === selectedCategory
+        )
+      ) {
+        setSelectedCategory("all");
+      }
+    } catch (error) {
+      toast.error("Không thể tải dữ liệu");
+    }
   }
 
   useEffect(() => {
     load();
   }, []);
+
+  // =========================
+  // FILTER PRODUCTS
+  // =========================
+
+  const filteredProducts =
+    selectedCategory === "all"
+      ? products
+      : products.filter(
+          (product) => product.categoryId === selectedCategory
+        );
+
+  // =========================
+  // CREATE
+  // =========================
 
   function openCreate() {
     setEditId(null);
@@ -62,46 +103,65 @@ export default function Products() {
       name: "",
       unit: "",
       classification: "",
-      quantity: 0,
       storageLocation: "",
       note: "",
-      categoryId: 0,
+      categoryId:
+        selectedCategory === "all" ? 0 : Number(selectedCategory),
     });
 
     setOpenModal(true);
   }
+
+  // =========================
+  // EDIT
+  // =========================
+
   function openEdit(row: any) {
     setEditId(row.id);
 
     setForm({
       name: row.name,
-
       unit: row.unit,
-
       classification: row.classification || "",
-
-      quantity: row.quantity,
-
       storageLocation: row.storageLocation || "",
-
       note: row.note || "",
-
       categoryId: row.categoryId,
     });
 
     setOpenModal(true);
   }
+
+  // =========================
+  // DELETE
+  // =========================
+
   async function remove() {
     if (!deleteId) return;
 
-    await api.delete(`/products/${deleteId}`);
+    try {
+      await api.delete(`/products/${deleteId}`);
 
-    setDeleteId(null);
+      toast.success("Xóa thành công");
 
-    load();
+      setDeleteId(null);
+
+      load();
+    } catch {
+      toast.error("Không thể xóa sản phẩm");
+    }
   }
+
+  // =========================
+  // SAVE
+  // =========================
+
   async function saveProduct() {
     try {
+      if (!form.categoryId) {
+        toast.error("Vui lòng chọn danh mục");
+        return;
+      }
+
       if (editId) {
         await api.patch(`/products/${editId}`, form);
 
@@ -119,21 +179,28 @@ export default function Products() {
       toast.error("Có lỗi xảy ra");
     }
   }
+
+  // =========================
+  // TABLE COLUMNS
+  // =========================
+
   const columns: GridColDef[] = [
     {
       field: "id",
       headerName: "ID",
-      width: 90,
+      width: 80,
     },
+
     {
       field: "name",
-      headerName: " Tên vũ khí",
+      headerName: "Tên vũ khí - khí tài",
       flex: 1,
+      minWidth: 220,
     },
 
     {
       field: "unit",
-      headerName: "Đơn vị",
+      headerName: "Đơn vị tính",
       width: 120,
     },
 
@@ -142,6 +209,13 @@ export default function Products() {
       headerName: "Phân cấp",
       width: 150,
     },
+
+    {
+      field: "quantity",
+      headerName: "Số lượng trong kho",
+      width: 160,
+    },
+
     {
       field: "category",
       headerName: "Danh mục",
@@ -151,15 +225,11 @@ export default function Products() {
         return row.category?.name || "";
       },
     },
-    {
-      field: "quantity",
-      headerName: "Số lượng",
-      width: 150,
-    },
+
     {
       field: "action",
       headerName: "Thao tác",
-      width: 260,
+      width: 280,
       sortable: false,
 
       renderCell: (params) => (
@@ -196,8 +266,13 @@ export default function Products() {
     },
   ];
 
+  // =========================
+  // RENDER
+  // =========================
+
   return (
     <Box>
+      {/* HEADER */}
       <Box
         sx={{
           display: "flex",
@@ -206,30 +281,90 @@ export default function Products() {
           my: 3,
         }}
       >
-        <Typography variant="h4" component="h1" sx={{ fontWeight: "bold" }}>
-          THỐNG KÊ VŨ KHÍ - KHÍ TÀI
-        </Typography>
+        <Box>
+          <Typography
+            variant="h4"
+            component="h1"
+            sx={{
+              fontWeight: "bold",
+            }}
+          >
+            THỐNG KÊ VŨ KHÍ - KHÍ TÀI
+          </Typography>
 
-        <Button variant="contained" startIcon={<Add />} onClick={openCreate}>
+          <Typography
+            sx={{
+              mt: 1,
+              fontSize: 14,
+              color: "text.secondary",
+            }}
+          >
+            ⓘ Thống kê VK, KT, ĐD theo biên chế 1875
+          </Typography>
+        </Box>
+
+        <Button
+          variant="contained"
+          startIcon={<Add />}
+          onClick={openCreate}
+        >
           Thêm vũ khí - khí tài
         </Button>
       </Box>
-      <div className="mb-3 text-sm text-slate-400 uppercase">
-        <span>ⓘ Thống kê VK, KT, ĐD theo biên chế 1875</span>
-      </div>
 
+      {/* CATEGORY TABS */}
+      <Card sx={{ mb: 2 }}>
+        <Box
+          sx={{
+            borderBottom: 1,
+            borderColor: "divider",
+          }}
+        >
+          <Tabs
+            value={selectedCategory}
+            onChange={(_, newValue) => {
+              setSelectedCategory(newValue);
+            }}
+            variant="scrollable"
+            scrollButtons="auto"
+          >
+            {/* TẤT CẢ */}
+            <Tab
+              label={`Tất cả (${products.length})`}
+              value="all"
+            />
+
+            {/* CÁC DANH MỤC */}
+            {categories.map((category) => {
+              const count = products.filter(
+                (product) => product.categoryId === category.id
+              ).length;
+
+              return (
+                <Tab
+                  key={category.id}
+                  value={category.id}
+                  label={`${category.name} (${count})`}
+                />
+              );
+            })}
+          </Tabs>
+        </Box>
+      </Card>
+
+      {/* TABLE */}
       <Card>
         <CardContent>
-          <div
-            style={{
-              height: 550,
+          <Box
+            sx={{
+              height: 500,
               width: "100%",
             }}
           >
             <DataGrid
-              rows={products}
+              rows={filteredProducts}
               columns={columns}
-              pageSizeOptions={[5, 10, 20]}
+              pageSizeOptions={[5, 10, 20, 50]}
               initialState={{
                 pagination: {
                   paginationModel: {
@@ -238,17 +373,25 @@ export default function Products() {
                   },
                 },
               }}
+              disableRowSelectionOnClick
             />
-          </div>
+          </Box>
         </CardContent>
       </Card>
+
+      {/* =========================
+          CREATE / EDIT MODAL
+      ========================= */}
+
       <Dialog
         open={openModal}
         onClose={() => setOpenModal(false)}
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>{editId ? "Cập nhật vũ khí" : "Thêm vũ khí"}</DialogTitle>
+        <DialogTitle>
+          {editId ? "Cập nhật vũ khí" : "Thêm vũ khí"}
+        </DialogTitle>
 
         <DialogContent>
           <Box
@@ -262,14 +405,24 @@ export default function Products() {
               className="border p-2 rounded"
               placeholder="Tên vũ khí"
               value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  name: e.target.value,
+                })
+              }
             />
 
             <input
               className="border p-2 rounded"
               placeholder="Đơn vị"
               value={form.unit}
-              onChange={(e) => setForm({ ...form, unit: e.target.value })}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  unit: e.target.value,
+                })
+              }
             />
 
             <input
@@ -283,31 +436,9 @@ export default function Products() {
                 })
               }
             />
-            <input
-              className="border p-2 rounded"
-              placeholder="Số lượng"
-              value={form.quantity}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  quantity: Number(e.target.value),
-                })
-              }
-            />
-
-            {/* <input
-              className="border p-2 rounded"
-              placeholder="Kho"
-              value={form.storageLocation}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  storageLocation: e.target.value,
-                })
-              }
-            /> */}
 
             <select
+              className="border p-2 rounded"
               value={form.categoryId}
               onChange={(e) =>
                 setForm({
@@ -340,21 +471,43 @@ export default function Products() {
         </DialogContent>
 
         <DialogActions>
-          <Button onClick={() => setOpenModal(false)}>Hủy</Button>
+          <Button onClick={() => setOpenModal(false)}>
+            Hủy
+          </Button>
 
-          <Button variant="contained" onClick={saveProduct}>
+          <Button
+            variant="contained"
+            onClick={saveProduct}
+          >
             Lưu
           </Button>
         </DialogActions>
       </Dialog>
-      <Dialog open={deleteId !== null} onClose={() => setDeleteId(null)}>
+
+      {/* =========================
+          DELETE MODAL
+      ========================= */}
+
+      <Dialog
+        open={deleteId !== null}
+        onClose={() => setDeleteId(null)}
+      >
         <DialogTitle>Xóa sản phẩm</DialogTitle>
 
-        <DialogContent>Bạn có chắc muốn xóa sản phẩm này?</DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteId(null)}>Hủy</Button>
+        <DialogContent>
+          Bạn có chắc muốn xóa sản phẩm này?
+        </DialogContent>
 
-          <Button color="error" variant="contained" onClick={remove}>
+        <DialogActions>
+          <Button onClick={() => setDeleteId(null)}>
+            Hủy
+          </Button>
+
+          <Button
+            color="error"
+            variant="contained"
+            onClick={remove}
+          >
             Xóa
           </Button>
         </DialogActions>

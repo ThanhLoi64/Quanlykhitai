@@ -13,9 +13,12 @@ export default function Inventory() {
   const [items, setItems] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [warehouseId, setWarehouseId] = useState("");
-
+  const [selectedCategory, setSelectedCategory] = useState<number | "all">(
+    "all",
+  );
   const [productId, setProductId] = useState("");
   const [serialNumber, setSerialNumber] = useState("");
+  const [importOrder, setImportOrder] = useState("");
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -30,11 +33,11 @@ export default function Inventory() {
     warehouseId: "",
   });
   const columns: GridColDef[] = [
-    {
-      field: "id",
-      headerName: "ID",
-      width: 90,
-    },
+    // {
+    //   field: "id",
+    //   headerName: "ID",
+    //   width: 90,
+    // },
     {
       field: "stt",
       headerName: "STT",
@@ -48,6 +51,11 @@ export default function Inventory() {
     {
       field: "serialNumber",
       headerName: "Số hiệu",
+      flex: 1,
+    },
+    {
+      field: "importOrder",
+      headerName: "Lệnh nhập kho",
       flex: 1,
     },
     {
@@ -66,15 +74,15 @@ export default function Inventory() {
             params.value === "IN_STOCK"
               ? "success"
               : params.value === "REPAIR"
-              ? "warning"
-              : "error"
+                ? "warning"
+                : "error"
           }
           label={
             params.value === "IN_STOCK"
               ? "Trong kho"
               : params.value === "REPAIR"
-              ? "Sửa chữa"
-              : "Đã cấp"
+                ? "Sửa chữa"
+                : "Đã biên chế"
           }
         />
       ),
@@ -95,7 +103,8 @@ export default function Inventory() {
           >
             Sửa
           </Button>
-          {/* <Button
+          {/* <Button 
+
             onClick={() => handleDelete(params.row.raw.id)}
             size="small"
             color="error"
@@ -160,12 +169,14 @@ export default function Inventory() {
         productId: Number(productId),
         warehouseId: Number(warehouseId),
         serialNumber,
+        importOrder,
       });
 
       toast.success("Nhập kho thành công");
 
       setProductId("");
       setSerialNumber("");
+      setImportOrder("");
 
       setOpen(false); // đóng modal
 
@@ -180,6 +191,7 @@ export default function Inventory() {
     setProductId("");
     setWarehouseId("");
     setSerialNumber("");
+    setImportOrder("");
     setOpen(true);
   }
 
@@ -188,9 +200,9 @@ export default function Inventory() {
     setProductId(String(item.productId || item.product?.id || ""));
     setWarehouseId(String(item.warehouseId || item.warehouse?.id || ""));
     setSerialNumber(item.serialNumber || "");
+    setImportOrder(item.importOrder || "");
     setOpen(true);
   }
-
   async function save() {
     if (!productId || !serialNumber) {
       toast.error("Vui lòng nhập đầy đủ");
@@ -215,6 +227,7 @@ export default function Inventory() {
           productId: Number(productId),
           warehouseId: Number(warehouseId),
           serialNumber,
+          importOrder,
         });
         toast.success("Cập nhật thành công");
       } else {
@@ -226,6 +239,7 @@ export default function Inventory() {
       setProductId("");
       setWarehouseId("");
       setSerialNumber("");
+      setImportOrder("");
       setOpen(false);
       load();
     } catch (err: any) {
@@ -250,6 +264,7 @@ export default function Inventory() {
       const rows = rawRows.map((r) => ({
         productName: r["Loại khí tài"],
         serialNumber: r["Số hiệu"],
+        importOrder: r["Lệnh nhập kho"],
         accessory: r["Phụ tùng"],
         equipment: r["Trang cụ"],
         militaryEquipment: r["Quân cụ"],
@@ -275,7 +290,13 @@ export default function Inventory() {
     link.click();
   }
   const filteredItems = items.filter((item) => {
+    const matchCategory =
+      selectedCategory === "all" ||
+      item.product?.categoryId === Number(selectedCategory) ||
+      item.product?.category?.id === Number(selectedCategory);
+
     return (
+      matchCategory &&
       (!filters.productId || item.productId === Number(filters.productId)) &&
       (!filters.warehouseId ||
         item.warehouseId === Number(filters.warehouseId)) &&
@@ -292,6 +313,7 @@ export default function Inventory() {
     stt: index + 1,
     product: i.product?.name,
     serialNumber: i.serialNumber,
+    importOrder: i.importOrder || "-",
     accessory: i.accessory || "-",
     equipment: i.equipment || "-",
     militaryEquipment: i.militaryEquipment || "-",
@@ -362,12 +384,88 @@ export default function Inventory() {
 
       {/* TABLE */}
 
+      {/* CATEGORY TABS */}
+
       <div className="bg-white rounded-xl shadow overflow-hidden">
+        <div className="border-b">
+          <div className="px-4 pt-2">
+            <div className="flex items-center gap-2 overflow-x-auto">
+              {/* TẤT CẢ */}
+              <button
+                onClick={() => setSelectedCategory("all")}
+                className={`
+            px-5 py-3 font-semibold whitespace-nowrap border-b-2 transition
+            ${
+              selectedCategory === "all"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-slate-500 hover:text-blue-600"
+            }
+          `}
+              >
+                Tất cả
+                <span className="ml-2 rounded-full bg-slate-100 px-2 py-1 text-xs">
+                  {items.length}
+                </span>
+              </button>
+
+              {/* CÁC DANH MỤC */}
+              {[
+                ...new Map(
+                  products.map((p) => [
+                    p.category?.id ?? p.categoryId,
+                    p.category,
+                  ]),
+                ).values(),
+              ]
+                .filter(Boolean)
+                .map((category: any) => {
+                  const count = items.filter(
+                    (item) =>
+                      item.product?.categoryId === category.id ||
+                      item.product?.category?.id === category.id,
+                  ).length;
+
+                  return (
+                    <button
+                      key={category.id}
+                      onClick={() => setSelectedCategory(category.id)}
+                      className={`
+                  px-5 py-3 font-semibold whitespace-nowrap
+                  border-b-2 transition
+                  ${
+                    selectedCategory === category.id
+                      ? "border-blue-600 text-blue-600"
+                      : "border-transparent text-slate-500 hover:text-blue-600"
+                  }
+                `}
+                    >
+                      {category.name}
+
+                      <span
+                        className={`
+                    ml-2 rounded-full px-2 py-1 text-xs
+                    ${
+                      selectedCategory === category.id
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-slate-100 text-slate-600"
+                    }
+                  `}
+                      >
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+            </div>
+          </div>
+        </div>
+
+        {/* TABLE */}
+
         <Box
           sx={{
-            height: 550,
+            height: 500,
             bgcolor: "white",
-            borderRadius: 2,
           }}
         >
           <DataGrid
@@ -427,6 +525,16 @@ export default function Inventory() {
                   className="w-full border rounded p-2 mt-1"
                   value={serialNumber}
                   onChange={(e) => setSerialNumber(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label>Lệnh nhập kho</label>
+
+                <input
+                  className="w-full border rounded p-2 mt-1"
+                  value={importOrder}
+                  onChange={(e) => setImportOrder(e.target.value)}
                 />
               </div>
 

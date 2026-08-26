@@ -295,7 +295,7 @@ export default function Registration() {
         return "ĐANG SỬA CHỮA";
 
       case "ISSUED":
-        return "ĐÃ CẤP";
+        return "ĐÃ BIÊN CHẾ";
 
       case "IN_STOCK":
         return "TRONG KHO";

@@ -14,17 +14,39 @@ model User {
   fullName  String
   role      UserRole @default(STAFF)
   isActive  Boolean  @default(true)
+  tenantId  Int      @default(1)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@unique([id, tenantId])
+}
+
+model Tenant {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  parentId  Int?
+  parent    Tenant?  @relation("TenantTree", fields: [parentId], references: [id])
+  children  Tenant[] @relation("TenantTree")
+  users     User[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([parentId])
 }
 
 model Category {
   id          Int       @id @default(autoincrement())
-  name        String    @unique
+  name        String
+  tenantId    Int       @default(1)
   description String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   products    Product[]
+
+  @@unique([tenantId, name])
+  @@unique([id, tenantId])
+  @@index([tenantId])
 }
 
 model Product {
@@ -42,11 +64,16 @@ model Product {
   /// Ghi chú
   note            String?
   categoryId      Int
+  tenantId        Int             @default(1)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   category        Category        @relation(fields: [categoryId], references: [id])
   details         ProductDetail[]
   registrations   Registration[]
+  transfers       Transfer[]
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
 }
 
 model Registration {
@@ -58,9 +85,12 @@ model Registration {
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
   productId    Int?
+  tenantId     Int                @default(1)
   detail       ProductDetail      @relation(fields: [detailId], references: [id])
   owner        Owner              @relation(fields: [ownerId], references: [id])
   product      Product?           @relation(fields: [productId], references: [id])
+
+  @@unique([id, tenantId])
 }
 
 model Owner {
@@ -75,10 +105,14 @@ model Owner {
   department    String?
   /// SĐT
   phone         String?
+  tenantId      Int             @default(1)
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   details       ProductDetail[]
   registrations Registration[]
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
 }
 
 model ProductDetail {
@@ -93,19 +127,24 @@ model ProductDetail {
   equipment         String?
   status            String         @default("AVAILABLE")
   militaryEquipment String?
+  importOrder       String?
   receivedDate      DateTime?
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
   warehouseId       Int?
+  tenantId          Int            @default(1)
   owner             Owner?         @relation(fields: [ownerId], references: [id])
   product           Product        @relation(fields: [productId], references: [id])
   warehouse         Warehouse?     @relation(fields: [warehouseId], references: [id])
   registrations     Registration[]
   repairRecords     RepairRecord[]
+  transfers         Transfer[]
+
+  @@unique([id, tenantId])
 }
 
 model RepairRecord {
-  id              Int            @id @default(autoincrement())
+  id              Int       @id @default(autoincrement())
   productDetailId Int
   damageStatus    String?
   cause           String?
@@ -114,36 +153,78 @@ model RepairRecord {
   repairUnit      String?
   receivedDate    DateTime?
   note            String?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  tenantId        Int       @default(1)
 
   productDetail ProductDetail @relation(fields: [productDetailId], references: [id])
+
+  @@unique([id, tenantId])
 }
 
 model Warehouse {
   id          Int             @id @default(autoincrement())
-  name        String          @unique
+  name        String
+  tenantId    Int             @default(1)
   description String?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   details     ProductDetail[]
+
+  @@unique([tenantId, name])
+  @@unique([id, tenantId])
+  @@index([tenantId])
 }
 
 model AppLog {
   id        Int      @id @default(autoincrement())
   userId    Int?
   username  String
+  tenantId  Int      @default(1)
   action    String
   detail    String?
   createdAt DateTime @default(now())
+
+  @@unique([id, tenantId])
+}
+
+model Transfer {
+  id              Int            @id @default(autoincrement())
+  productId       Int
+  productDetailId Int
+  fromTenantId    Int
+  toTenantId      Int
+  toUserId        Int?
+  toWarehouseId   Int
+  approvalTenantId Int            @default(1)
+  approvalUserId   Int            @default(1)
+  status          TransferStatus @default(PENDING)
+  note            String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  tenantId        Int            @default(1)
+  product         Product        @relation(fields: [productId], references: [id])
+  productDetail   ProductDetail  @relation(fields: [productDetailId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId, status])
+  @@index([toTenantId, status])
 }
 
 enum UserRole {
+  SYSADMIN
   ADMIN
   STAFF
+  USER
 }
 
 enum RegistrationStatus {
   ACTIVE
   RETURNED
+}
+
+enum TransferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
 }

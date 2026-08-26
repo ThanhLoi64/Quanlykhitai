@@ -15,9 +15,12 @@ import ProductDetail from "../pages/ProductDetail";
 import Registration from "../pages/Registration";
 import Owner from "../pages/Owner";
 import Inventory from "../pages/Inventory";
+import Export from "../pages/Export";
 import Warehouse from "../pages/Warehouse";
 import BrockenWhatching from "../pages/BrockenWatching";
 import Information from "../pages/Infomation";
+import ChildAccounts from "../pages/ChildAccounts";
+import WeaponSearch from "../pages/WeaponSearch";
 
 
 
@@ -46,10 +49,13 @@ return (
         <Route path="/owners" element={<Owner />} />
 
         <Route path="/inventory" element={<Inventory />} />
+        <Route path="/exports" element={<Export />} />
         <Route path="/warehouses" element={<Warehouse />} />
         <Route path="/logs" element={<Log />} />
         <Route path="/broken-watching" element={<BrockenWhatching />} />
         <Route path="/about" element={<Information />} />
+        <Route path="/child-accounts" element={<ChildAccounts />} />
+        <Route path="/weapon-search" element={<WeaponSearch />} />
 
       </Route>
 

@@ -58,7 +58,7 @@ export class CategoryController {
   JwtAuthGuard,
   RolesGuard
 )
-@Roles('ADMIN')
+@Roles('SYSADMIN', 'ADMIN', 'STAFF', 'USER')
 async create(
   @Req() req:any,
   @Body() dto:CreateCategoryDto
@@ -82,7 +82,7 @@ async create(
   JwtAuthGuard,
   RolesGuard
 )
-@Roles('ADMIN')
+@Roles('SYSADMIN', 'ADMIN', 'STAFF', 'USER')
 async update(
 
   @Req() req:any,
@@ -114,7 +114,7 @@ async update(
     JwtAuthGuard,
     RolesGuard
   )
-  @Roles('ADMIN')
+  @Roles('SYSADMIN', 'ADMIN', 'STAFF', 'USER')
   async remove(
     @Req() req:any,
     @Param('id') id:string

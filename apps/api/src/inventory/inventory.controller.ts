@@ -17,6 +17,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { LogService } from '../log/log.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
+import { CreateTransferDto } from './dto/create-transfer.dto';
 
 @ApiBearerAuth()
 @ApiTags('Inventory')
@@ -36,6 +37,45 @@ export class InventoryController {
   @Get()
   findAll() {
     return this.service.findAll();
+  }
+
+  @Get('transfer/options')
+  transferOptions(@Req() req: any) {
+    return this.service.transferOptions(req.user);
+  }
+
+  @Get('transfer/incoming')
+  incomingTransfers(@Req() req: any) {
+    return this.service.incomingTransfers(req.user);
+  }
+
+  @Get('transfer/outgoing')
+  outgoingTransfers() {
+    return this.service.outgoingTransfers();
+  }
+
+  @Post('transfer')
+  async createTransfer(@Req() req: any, @Body() dto: CreateTransferDto) {
+    const transfer = await this.service.createTransfer(req.user, dto);
+    await this.logService.create(req.user, 'Tạo phiếu xuất kho', {
+      productDetailId: dto.productDetailId,
+      toWarehouseId: dto.toWarehouseId,
+    });
+    return transfer;
+  }
+
+  @Patch('transfer/:id/respond')
+  respondToTransfer(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() body: { accepted?: boolean },
+  ) {
+    return this.service.respondToTransfer(req.user, Number(id), body.accepted === true);
+  }
+
+  @Delete('transfer/:id')
+  deleteTransfer(@Req() req: any, @Param('id') id: string) {
+    return this.service.deleteTransfer(req.user, Number(id));
   }
 
   @Post()

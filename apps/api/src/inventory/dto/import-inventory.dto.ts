@@ -25,6 +25,9 @@ export class ImportInventoryItemDto {
   @ApiPropertyOptional({ example: 'Súng trường AK', description: 'Loại trang bị quân sự' })
   militaryEquipment?: string;
 
+  @ApiPropertyOptional({ example: 'LENH-2026-001', description: 'Số lệnh nhập kho' })
+  importOrder?: string;
+
   @ApiPropertyOptional({ example: 'IN_STOCK', description: 'Trạng thái hiện tại của khí tài' })
   status?: string;
 }

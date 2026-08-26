@@ -90,7 +90,7 @@ status:"AVAILABLE"
         // nếu schema có classification thì giữ
         classification:dto.classification,
 
-        quantity:dto.quantity,
+        quantity: 0,
 
         storageLocation:dto.storageLocation,
 
@@ -155,8 +155,6 @@ undefined
         unit:dto.unit,
 
         classification:dto.classification,
-
-        quantity:dto.quantity,
 
         storageLocation:dto.storageLocation,
 
