@@ -142,16 +142,24 @@ export default function BrokenWatching() {
         note,
       };
 
+      let savedRepair: any;
+
       if (editId) {
-        await api.patch(`/repairs/${editId}`, payload);
+        const response = await api.patch(`/repairs/${editId}`, payload);
+        savedRepair = response.data;
         toast.success("Cập nhật thông tin sữa chữa thành công");
       } else {
-        await api.post("/repairs", payload);
+        const response = await api.post("/repairs", payload);
+        savedRepair = response.data;
         toast.success("Thêm hồ sơ sửa chữa thành công");
       }
 
       closeModal();
-      loadData();
+      await loadData();
+      setRepairs((current) => [
+        savedRepair,
+        ...current.filter((repair) => repair.id !== savedRepair.id),
+      ]);
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Lưu dữ liệu thất bại");
     }

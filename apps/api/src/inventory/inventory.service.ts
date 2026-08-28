@@ -510,15 +510,21 @@ export class InventoryService {
     });
     if (!detail) throw new BadRequestException("Bản ghi không tồn tại");
 
-    const removed = await this.prisma.productDetail.delete({
-      where: {
-        id,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      await tx.repairRecord.deleteMany({
+        where: { productDetailId: id },
+      });
+
+      const removed = await tx.productDetail.delete({
+        where: { id },
+      });
+
+      await tx.product.update({
+        where: { id: detail.productId },
+        data: { quantity: { decrement: 1 } },
+      });
+
+      return removed;
     });
-    await this.prisma.product.update({
-      where: { id: detail.productId },
-      data: { quantity: { decrement: 1 } },
-    });
-    return removed;
   }
 }

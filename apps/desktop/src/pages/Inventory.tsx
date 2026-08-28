@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { DataGrid } from "@mui/x-data-grid";
 import type { GridColDef } from "@mui/x-data-grid";
 import { Box, Button, Chip } from "@mui/material";
-import { Edit } from "@mui/icons-material";
+import { Delete, Edit } from "@mui/icons-material";
 import { useRef } from "react";
 import * as XLSX from "xlsx";
 
@@ -135,17 +135,19 @@ export default function Inventory() {
     load();
   }, []);
 
-  // async function handleDelete(id: number) {
-  //   if (!window.confirm("Bạn có chắc muốn xóa dòng này?")) return;
+  async function handleDelete(id: number) {
+    if (!window.confirm("Bạn có chắc muốn xóa sản phẩm này khỏi kho?")) return;
 
-  //   try {
-  //     await api.delete(`/inventory/${id}`);
-  //     toast.success("Xóa thành công");
-  //     load();
-  //   } catch {
-  //     toast.error("Xóa thất bại");
-  //   }
-  // }
+    try {
+      await api.delete(`/inventory/${id}`);
+      toast.success("Xóa sản phẩm khỏi kho thành công");
+      setOpen(false);
+      setEditId(null);
+      await load();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Xóa sản phẩm thất bại");
+    }
+  }
 
   async function create() {
     if (!productId || !serialNumber) {
@@ -556,6 +558,15 @@ export default function Inventory() {
             </div>
 
             <div className="flex justify-end gap-3 mt-6">
+              {editId && (
+                <button
+                  onClick={() => handleDelete(editId)}
+                  className="mr-auto flex items-center gap-2 rounded-lg bg-orange-600 px-5 py-2 text-white hover:bg-red-700"
+                >
+                  <Delete fontSize="small" />
+                  Thu hồi khỏi kho
+                </button>
+              )}
               <button
                 onClick={() => {
                   setOpen(false);
