@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import api from "../api/api";
 import { toast } from "sonner";
+import { DataGrid, type GridColDef } from "@mui/x-data-grid";
+import { Box, Button } from "@mui/material";
+import { Delete, Edit } from "@mui/icons-material";
 
 export default function Warehouse() {
   const [warehouses, setWarehouses] = useState<any[]>([]);
@@ -131,6 +134,49 @@ export default function Warehouse() {
       </div>
     );
   }
+
+  const rows = warehouses.map((warehouse, index) => ({
+    id: warehouse.id,
+    stt: index + 1,
+    name: warehouse.name,
+    description: warehouse.description || "-",
+    raw: warehouse,
+  }));
+
+  const columns: GridColDef[] = [
+    { field: "stt", headerName: "STT", width: 80 },
+    { field: "name", headerName: "Tên đầu mối", flex: 1, minWidth: 180 },
+    { field: "description", headerName: "Mô tả", flex: 1, minWidth: 220 },
+    {
+      field: "action",
+      headerName: "Thao tác",
+      width: 220,
+      sortable: false,
+      filterable: false,
+      renderCell: (params) => (
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button
+            onClick={() => openEdit(params.row.raw)}
+            size="small"
+            variant="contained"
+            startIcon={<Edit />}
+          >
+            Sửa
+          </Button>
+          <Button
+            onClick={() => remove(params.row.id)}
+            size="small"
+            color="error"
+            variant="outlined"
+            startIcon={<Delete />}
+          >
+            Xóa
+          </Button>
+        </Box>
+      ),
+    },
+  ];
+
   return (
     <div className="p-6 space-y-6">
       {/* <div className="flex border-b mb-6">
@@ -166,50 +212,17 @@ export default function Warehouse() {
 
       <div className="bg-white rounded-xl shadow overflow-hidden">
         {tab === "list" ? (
-          <>
-            {/* Table hiện tại của bạn */}
-            <table className="w-full">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="p-3">STT</th>
-
-                  <th>Tên đầu mối</th>
-
-                  <th>Mô tả</th>
-
-                  <th>Thao tác</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {warehouses.map((w, index) => (
-                  <tr key={w.id} className="border-t">
-                    <td className="p-3">{index + 1}</td>
-
-                    <td>{w.name}</td>
-
-                    <td>{w.description || "-"}</td>
-
-                    <td className="space-x-2">
-                      <button
-                        onClick={() => openEdit(w)}
-                        className="bg-yellow-500 text-white px-3 py-1 rounded"
-                      >
-                        Sửa
-                      </button>
-
-                      <button
-                        onClick={() => remove(w.id)}
-                        className="bg-red-600 text-white px-3 py-1 rounded"
-                      >
-                        Xóa
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </>
+          <Box sx={{ height: 550, bgcolor: "white" }}>
+            <DataGrid
+              rows={rows}
+              columns={columns}
+              pageSizeOptions={[10, 20, 50]}
+              initialState={{
+                pagination: { paginationModel: { pageSize: 10 } },
+              }}
+              disableRowSelectionOnClick
+            />
+          </Box>
         ) : (
           <div className="bg-white rounded-xl shadow p-6">
             {treeData.map((item) => (
@@ -221,7 +234,7 @@ export default function Warehouse() {
 
       {open && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
-          <div className="bg-white rounded-xl w-[500px] p-6">
+          <div className="bg-white rounded-xl w-125 p-6">
             <h2 className="text-xl font-bold mb-5">
               {editId ? "Cập nhật đầu mối" : "Thêm đầu mối"}
             </h2>

@@ -7,7 +7,25 @@ import { UpdateRepairDto } from './dto/update-repair.dto';
 export class RepairService {
   constructor(private prisma: PrismaService) {}
 
-  findAll() {
+  async findAll() {
+    const tenantId = this.prisma.getCurrentTenantId();
+    const orphanDetails = await this.prisma.productDetail.findMany({
+      where: {
+        status: 'REPAIR',
+        repairRecords: { none: {} },
+      },
+      select: { id: true },
+    });
+
+    if (orphanDetails.length > 0) {
+      await this.prisma.repairRecord.createMany({
+        data: orphanDetails.map((detail) => ({
+          productDetailId: detail.id,
+          tenantId: tenantId ?? 1,
+        })),
+      });
+    }
+
     return this.prisma.repairRecord.findMany({
       include: {
         productDetail: {
@@ -23,6 +41,11 @@ export class RepairService {
   }
 
   async create(dto: CreateRepairDto) {
+    const tenantId = this.prisma.getCurrentTenantId();
+    if (!tenantId) {
+      throw new BadRequestException('Tenant không hợp lệ');
+    }
+
     const detail = await this.prisma.productDetail.findUnique({
       where: {
         id: dto.productDetailId,
@@ -39,6 +62,7 @@ export class RepairService {
     return this.prisma.$transaction(async (tx) => {
       const created = await tx.repairRecord.create({
         data: {
+          tenantId,
           productDetail: {
             connect: {
               id: dto.productDetailId,

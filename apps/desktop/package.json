@@ -1,22 +1,17 @@
 {
   "name": "desktop",
   "private": true,
-  "version": "2.0.0",
+  "version": "2.0.1",
   "type": "module",
   "main": "electron/main.ts",
   "scripts": {
-  "dev": "concurrently \"vite --host\" \"cross-env VITE_DEV_SERVER_URL=http://localhost:5173 pnpm electron\"",
-
-  "electron": "electron --import=tsx .",
-
-  "build": "tsc -b && vite build",
-
-  "lint": "eslint .",
-
-  "preview": "vite preview",
-
-  "dist": "npm run build && electron-builder"
-},
+    "dev": "concurrently \"vite --host\" \"cross-env VITE_DEV_SERVER_URL=http://localhost:5173 pnpm electron\"",
+    "electron": "electron --import=tsx .",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "dist": "npm run build && electron-builder"
+  },
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
@@ -27,6 +22,8 @@
     "axios": "^1.18.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "electron-updater": "^6.8.9",
+    "exceljs": "^4.4.0",
     "lucide-react": "^1.26.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
@@ -47,6 +44,7 @@
     "cross-env": "^10.1.0",
     "electron": "^43.2.0",
     "electron-builder": "^26.15.3",
+    "electron-updater": "^6.6.2",
     "eslint": "^10.6.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",
@@ -56,20 +54,26 @@
     "typescript-eslint": "^8.62.0",
     "vite": "^8.1.1"
   },
- "build": {
-  "appId": "com.quanlykhitai.desktop",
-  "productName": "Quan Ly Khi Tai",
-  "directories": {
-    "output": "release"
-  },
-  "files": [
-    "dist/**/*",
-    "electron/**/*",
-    "package.json"
-  ],
-  "asar": true,
-  "win": {
-    "target": "nsis"
+  "build": {
+    "appId": "com.quanlykhitai.desktop",
+    "productName": "Quan Ly Khi Tai",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "win": {
+      "target": "nsis"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "ThanhLoi64",
+      "repo": "Quanlykhitai",
+      "releaseType": "release"
+    }
   }
-}
 }
