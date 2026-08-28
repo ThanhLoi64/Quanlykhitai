@@ -7,6 +7,7 @@ import { Box, Button, Chip } from "@mui/material";
 import { Delete, Edit } from "@mui/icons-material";
 import { useRef } from "react";
 import * as XLSX from "xlsx";
+import { downloadInventoryTemplate } from "../utils/excelTemplates";
 
 export default function Inventory() {
   const [products, setProducts] = useState<any[]>([]);
@@ -285,11 +286,15 @@ export default function Inventory() {
 
     e.target.value = "";
   }
-  function downloadTemplate() {
-    const link = document.createElement("a");
-    link.href = "/danhsachkhitai.xlsx";
-    link.download = "danhsachkhitai.xlsx";
-    link.click();
+  async function downloadTemplate() {
+    try {
+      await downloadInventoryTemplate({
+        productNames: products.map((product) => product.name).filter(Boolean),
+        warehouseNames: warehouses.map((warehouse) => warehouse.name).filter(Boolean),
+      });
+    } catch {
+      toast.error("Không thể tạo file mẫu nhập kho");
+    }
   }
   const filteredItems = items.filter((item) => {
     const matchCategory =

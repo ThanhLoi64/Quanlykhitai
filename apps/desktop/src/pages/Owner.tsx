@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { Box, Button } from "@mui/material";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
+import { downloadOwnerTemplate } from "../utils/excelTemplates";
 export default function Owner() {
   const [owners, setOwners] = useState<any[]>([]);
   const [openModal, setOpenModal] = useState(false);
@@ -153,9 +154,13 @@ export default function Owner() {
 
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
-    const rows = XLSX.utils.sheet_to_json(sheet);
-
-    console.log(rows);
+    const rawRows = XLSX.utils.sheet_to_json(sheet) as Record<string, unknown>[];
+    const rows = rawRows.map((row) => ({
+      fullName: row["Họ tên"] ?? row.fullName,
+      rank: row["Cấp bậc"] ?? row.rank,
+      position: row["Chức vụ"] ?? row.position,
+      department: row["Đơn vị"] ?? row.department,
+    }));
 
     try {
       await api.post("/owners/import", rows);
@@ -169,11 +174,12 @@ export default function Owner() {
 
     e.target.value = "";
   }
-  function downloadTemplate() {
-    const link = document.createElement("a");
-    link.href = "/danhsachquannhan.xlsx";
-    link.download = "/danhsachquannhan.xlsx";
-    link.click();
+  async function downloadTemplate() {
+    try {
+      await downloadOwnerTemplate();
+    } catch {
+      toast.error("Không thể tạo file mẫu quân nhân");
+    }
   }
 
   return (
