@@ -31,11 +31,29 @@ export class CreateProductDto {
   })
   note?: string;
 
+  @ApiPropertyOptional({
+    example: 'Việt Nam',
+    description: 'Xuất xứ sản phẩm',
+  })
+  origin?: string;
+
+  @ApiPropertyOptional({
+    description: 'Lịch sử sử dụng sản phẩm',
+  })
+  usageHistory?: string;
+
+  @ApiPropertyOptional({
+    description: 'Tài liệu liên quan đến sản phẩm',
+  })
+  documents?: string;
+
   @ApiProperty({
     example: 1,
     description: 'ID danh mục',
   })
   categoryId!: number;
+
+  image?: string;
 
   @ApiPropertyOptional({
     description: 'Thông tin chi tiết',

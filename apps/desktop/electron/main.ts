@@ -1,5 +1,4 @@
 import { app, BrowserWindow, ipcMain } from "electron";
-import { autoUpdater } from "electron-updater";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -55,40 +54,10 @@ function createWindow() {
 
 }
 
-function sendUpdateEvent(channel: string, payload?: unknown) {
-  mainWindow?.webContents.send(channel, payload);
-}
-
-ipcMain.handle("updater:download", async () => {
-  await autoUpdater.downloadUpdate();
-});
-
-ipcMain.handle("updater:install", () => {
-  autoUpdater.quitAndInstall();
-});
-
-autoUpdater.autoDownload = false;
-autoUpdater.on("update-available", (info) => {
-  sendUpdateEvent("updater:available", { version: info.version });
-});
-autoUpdater.on("update-downloaded", (info) => {
-  sendUpdateEvent("updater:downloaded", { version: info.version });
-});
-
-
-
 app.whenReady()
 .then(()=>{
 
   createWindow();
-
-  if (app.isPackaged) {
-    mainWindow?.webContents.once("did-finish-load", () => {
-      autoUpdater.checkForUpdates().catch(() => {
-        sendUpdateEvent("updater:error");
-      });
-    });
-  }
 
 });
 

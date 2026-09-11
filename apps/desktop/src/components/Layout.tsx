@@ -101,7 +101,7 @@ export default function Layout() {
           </NavLink>
           <NavLink to="/registrations" className={menuClass}>
             <ClipboardList size={30} />
-            {!collapsed && <span>Đăng ký sử dụng vũ khí - khí tài</span>}
+            {!collapsed && <span>Biên chế cá nhân</span>}
           </NavLink>
           <NavLink to="/warehouses" className={menuClass}>
             <ListCheck size={20} />

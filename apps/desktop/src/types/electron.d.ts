@@ -17,14 +17,6 @@ declare global {
       openFile():Promise<string>;
     };
 
-    updater: {
-      onAvailable(callback: (info: { version: string }) => void): () => void;
-      onDownloaded(callback: (info: { version: string }) => void): () => void;
-      download(): Promise<void>;
-      install(): Promise<void>;
-    };
-
-
   };
 
  }

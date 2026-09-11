@@ -1,0 +1,3 @@
+ALTER TABLE "Product"
+ADD COLUMN "image" TEXT,
+ADD COLUMN "imageFileId" TEXT;

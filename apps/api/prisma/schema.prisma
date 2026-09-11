@@ -63,6 +63,14 @@ model Product {
   storageLocation String?
   /// Ghi chú
   note            String?
+  /// Xuất xứ
+  origin          String?
+  /// Lịch sử sử dụng
+  usageHistory    String?
+  /// Tài liệu liên quan
+  documents       String?
+  image           String?
+  imageFileId     String?
   categoryId      Int
   tenantId        Int             @default(1)
   createdAt       DateTime        @default(now())

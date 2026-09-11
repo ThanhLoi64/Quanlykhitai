@@ -45,6 +45,18 @@ The application loads `.env` on startup. In production, provide
 `DATABASE_URL` through the hosting environment; environment variables already
 present on the process take precedence over `.env`.
 
+### ImageKit image uploads
+
+Product images are uploaded by the API to ImageKit. Keep the private key only
+in the API environment, never in the desktop app or source control:
+
+```env
+IMAGEKIT_PRIVATE_KEY="your_imagekit_private_key"
+IMAGEKIT_PUBLIC_KEY="your_imagekit_public_key"
+IMAGEKIT_ID="your_imagekit_id"
+IMAGEKIT_URL_ENDPOINT="https://ik.imagekit.io/your_imagekit_id"
+```
+
 After changing the local database URL, run migrations from `apps/api`:
 
 ```bash

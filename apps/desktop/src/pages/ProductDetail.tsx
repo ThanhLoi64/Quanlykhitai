@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../api/api";
 import qbz95 from "../assets/img-weapons-qbz95.webp";
+import { ScanSearch } from "lucide-react";
 function InfoBox({ label, value }: { label: string; value: any }) {
   return (
     <div className="rounded-lg border border-slate-200 p-3 bg-slate-50">
@@ -13,6 +14,7 @@ function InfoBox({ label, value }: { label: string; value: any }) {
 
 export default function ProductDetail() {
   const [activeTab, setActiveTab] = useState("Thông tin");
+  const [isImageZoomed, setIsImageZoomed] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -98,18 +100,30 @@ export default function ProductDetail() {
       border
     "
           >
-            <img
-              src={product.image || qbz95}
-              alt={product.name}
-              className="
-    w-40
-    h-40
+            <div className="relative shrink-0">
+              <img
+                src={product.image || qbz95}
+                alt={product.name}
+                className="
+    w-75
+    h-50
     object-cover
     rounded-xl
     border
     shadow-sm
   "
-            />
+              />
+
+              <button
+                type="button"
+                onClick={() => setIsImageZoomed(true)}
+                className="absolute bottom-2 right-2 rounded-md bg-slate-900/80 px-2 py-1 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-900"
+                aria-label="Phóng to ảnh vũ khí"
+                title="Phóng to ảnh vũ khí"
+              >
+                <ScanSearch size={16} aria-hidden="true" />
+              </button>
+            </div>
 
             <div>
               <h2
@@ -139,6 +153,31 @@ export default function ProductDetail() {
           </div>
         </div>
       </div>
+
+      {isImageZoomed && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Ảnh vũ khí phóng to"
+          onClick={() => setIsImageZoomed(false)}
+        >
+          <button
+            type="button"
+            onClick={() => setIsImageZoomed(false)}
+            className="absolute right-5 top-5 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow hover:bg-slate-100"
+            aria-label="Đóng ảnh phóng to"
+          >
+            Đóng
+          </button>
+          <img
+            src={product.image || qbz95}
+            alt={product.name}
+            className="max-h-[90vh] max-w-[90vw] rounded-xl object-contain shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          />
+        </div>
+      )}
 
       {/* TAB */}
 
@@ -200,6 +239,7 @@ gap-4
 
               <InfoBox label="Đơn vị tính" value={product.unit} />
               <InfoBox label="Danh mục" value={product.category?.name} />
+              <InfoBox label="Xuất xứ" value={product.origin} />
 
               <InfoBox label="Phân cấp" value={product.classification} />
 
@@ -306,7 +346,9 @@ gap-4
           <div>
             <h2 className="text-xl font-bold mb-5">Lịch sử sử dụng</h2>
 
-            <p className="text-slate-500">Chưa có dữ liệu lịch sử</p>
+            <p className="whitespace-pre-line text-slate-700">
+              {product.usageHistory || "Chưa có dữ liệu lịch sử"}
+            </p>
           </div>
         )}
 
@@ -316,7 +358,9 @@ gap-4
           <div>
             <h2 className="text-xl font-bold mb-5">Tài liệu</h2>
 
-            <p className="text-slate-500">Chưa có tài liệu</p>
+            <p className="whitespace-pre-line text-slate-700">
+              {product.documents || "Chưa có tài liệu"}
+            </p>
           </div>
         )}
       </div>
