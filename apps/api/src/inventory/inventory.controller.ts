@@ -81,10 +81,11 @@ export class InventoryController {
   @Post()
   async create(@Req() req: any, @Body() dto: CreateInventoryDto) {
     const created = await this.service.create(dto);
+    const createdItems = Array.isArray(created) ? created : [created];
     await this.logService.create(req.user, 'Nhập kho', {
-      productId: created.productId,
-      serialNumber: created.serialNumber,
-      warehouseId: created.warehouseId,
+      productId: createdItems[0]?.productId,
+      serialNumbers: createdItems.map((item: any) => item.serialNumber),
+      warehouseId: createdItems[0]?.warehouseId,
 
     });
     return created;

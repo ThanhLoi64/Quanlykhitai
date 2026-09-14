@@ -1,0 +1,2 @@
+ALTER TABLE "Ammunition"
+ADD COLUMN "unit" TEXT NOT NULL DEFAULT 'viên';

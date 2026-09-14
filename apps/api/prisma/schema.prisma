@@ -79,9 +79,31 @@ model Product {
   details         ProductDetail[]
   registrations   Registration[]
   transfers       Transfer[]
+  ammunitions     Ammunition[]
 
   @@unique([id, tenantId])
   @@index([tenantId])
+}
+
+model Ammunition {
+  id             Int      @id @default(autoincrement())
+  productId      Int
+  warehouseId    Int?
+  batch          String
+  quantity       Int
+  unit           String   @default("viên")
+  productionYear Int
+  tenantId       Int      @default(1)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  product        Product  @relation(fields: [productId], references: [id])
+  warehouse      Warehouse? @relation(fields: [warehouseId], references: [id])
+  transfers      Transfer[]
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([productId, tenantId])
+  @@index([warehouseId, tenantId])
 }
 
 model Registration {
@@ -161,6 +183,8 @@ model RepairRecord {
   repairUnit      String?
   receivedDate    DateTime?
   note            String?
+  image           String?
+  imageFileId     String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   tenantId        Int       @default(1)
@@ -178,6 +202,7 @@ model Warehouse {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   details     ProductDetail[]
+  ammunitions Ammunition[]
 
   @@unique([tenantId, name])
   @@unique([id, tenantId])
@@ -199,7 +224,9 @@ model AppLog {
 model Transfer {
   id              Int            @id @default(autoincrement())
   productId       Int
-  productDetailId Int
+  productDetailId Int?
+  ammunitionId    Int?
+  quantity        Int             @default(1)
   fromTenantId    Int
   toTenantId      Int
   toUserId        Int?
@@ -212,11 +239,13 @@ model Transfer {
   updatedAt       DateTime       @updatedAt
   tenantId        Int            @default(1)
   product         Product        @relation(fields: [productId], references: [id])
-  productDetail   ProductDetail  @relation(fields: [productDetailId], references: [id])
+  productDetail   ProductDetail?  @relation(fields: [productDetailId], references: [id])
+  ammunition      Ammunition?    @relation(fields: [ammunitionId], references: [id])
 
   @@unique([id, tenantId])
   @@index([tenantId, status])
   @@index([toTenantId, status])
+  @@index([ammunitionId, status])
 }
 
 enum UserRole {

@@ -18,6 +18,7 @@ export class InventoryService {
         include: {
           product: { select: { name: true } },
           productDetail: { select: { serialNumber: true } },
+          ammunition: { select: { batch: true, unit: true, warehouse: { select: { name: true } } } },
         },
         orderBy: { createdAt: 'desc' },
       }).then(async (transfers) => {
@@ -47,6 +48,7 @@ export class InventoryService {
       include: {
         product: { select: { name: true, unit: true } },
         productDetail: { select: { serialNumber: true, warehouse: { select: { name: true } } } },
+        ammunition: { select: { batch: true, unit: true, warehouse: { select: { name: true } } } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -67,7 +69,7 @@ export class InventoryService {
         fromUsername: sourceUser?.username,
         toUsername: users.find((user) => user.id === (transfer as typeof transfer & { toUserId?: number }).toUserId)?.username,
         approvalUsername: users.find((user) => user.id === (transfer as typeof transfer & { approvalUserId: number }).approvalUserId)?.username,
-        fromWarehouseName: transfer.productDetail.warehouse?.name,
+        fromWarehouseName: transfer.productDetail?.warehouse?.name || transfer.ammunition?.warehouse?.name,
         toWarehouseName: warehouses.find((warehouse) => warehouse.id === transfer.toWarehouseId)?.name,
       }));
     });
@@ -95,6 +97,61 @@ export class InventoryService {
         if (!sourceProduct) throw new BadRequestException('Sản phẩm nguồn không tồn tại');
 
         const destinationTenantId = transfer.toTenantId;
+
+        if (transfer.ammunitionId) {
+          const sourceAmmunition = await tx.ammunition.findUnique({ where: { id: transfer.ammunitionId } });
+          if (!sourceAmmunition || sourceAmmunition.quantity < transfer.quantity) {
+            throw new BadRequestException('Số lượng đạn trong kho không đủ để phê duyệt');
+          }
+
+          let targetCategory = await tx.category.findFirst({
+            where: { tenantId: destinationTenantId, name: { equals: sourceProduct.category.name, mode: 'insensitive' } },
+          });
+          if (!targetCategory) {
+            targetCategory = await tx.category.create({
+              data: { name: sourceProduct.category.name, description: sourceProduct.category.description, tenantId: destinationTenantId },
+            });
+          }
+
+          let targetProduct = await tx.product.findFirst({
+            where: { tenantId: destinationTenantId, name: sourceProduct.name, categoryId: targetCategory.id },
+          });
+          if (!targetProduct) {
+            targetProduct = await tx.product.create({
+              data: {
+                name: sourceProduct.name,
+                unit: sourceProduct.unit,
+                classification: sourceProduct.classification,
+                quantity: 0,
+                storageLocation: sourceProduct.storageLocation,
+                note: sourceProduct.note,
+                categoryId: targetCategory.id,
+                tenantId: destinationTenantId,
+              },
+            });
+          }
+
+          const targetAmmunition = await tx.ammunition.findFirst({
+            where: { tenantId: destinationTenantId, productId: targetProduct.id, batch: sourceAmmunition.batch },
+          });
+          if (targetAmmunition) {
+            await tx.ammunition.update({ where: { id: targetAmmunition.id }, data: { quantity: { increment: transfer.quantity }, warehouseId: transfer.toWarehouseId } });
+          } else {
+            await tx.ammunition.create({
+              data: {
+                productId: targetProduct.id,
+                batch: sourceAmmunition.batch,
+                unit: sourceAmmunition.unit,
+                quantity: transfer.quantity,
+                productionYear: sourceAmmunition.productionYear,
+                warehouseId: transfer.toWarehouseId,
+                tenantId: destinationTenantId,
+              },
+            });
+          }
+          await tx.ammunition.update({ where: { id: sourceAmmunition.id }, data: { quantity: { decrement: transfer.quantity } } });
+          return tx.transfer.update({ where: { id }, data: { status: 'ACCEPTED' } });
+        }
 
         let targetCategory = await tx.category.findFirst({
           where: {
@@ -211,22 +268,39 @@ export class InventoryService {
     const sourceTenantId = this.prisma.getCurrentTenantId();
     if (!sourceTenantId) throw new BadRequestException('Tenant không hợp lệ');
 
-    const detail = await this.prisma.productDetail.findUnique({
-      where: { id: dto.productDetailId },
-      select: { id: true, productId: true, status: true },
-    });
-    if (!detail) throw new BadRequestException('Khí tài không thuộc đơn vị hiện tại');
-    if (detail.status !== 'IN_STOCK') throw new BadRequestException('Chỉ được xuất khí tài đang trong kho');
+    const ammunitionId = dto.ammunitionId ? Number(dto.ammunitionId) : undefined;
+    const productDetailId = dto.productDetailId ? Number(dto.productDetailId) : undefined;
+    const toWarehouseId = Number(dto.toWarehouseId);
+    const toUserId = Number(dto.toUserId);
+    const approvalUserId = Number(dto.approvalUserId);
+    let sourceAmmunition: any = null;
+
+    if (ammunitionId) {
+      const quantity = Number(dto.quantity);
+      if (!Number.isInteger(ammunitionId) || ammunitionId <= 0) throw new BadRequestException('Lô đạn không hợp lệ');
+      if (!Number.isInteger(quantity) || quantity <= 0) throw new BadRequestException('Số lượng đạn phải lớn hơn 0');
+      sourceAmmunition = await this.prisma.ammunition.findFirst({ where: { id: ammunitionId, tenantId: sourceTenantId }, include: { product: true } });
+      if (!sourceAmmunition) throw new BadRequestException('Lô đạn không tồn tại');
+      if (sourceAmmunition.quantity < quantity) throw new BadRequestException(`Tồn kho chỉ còn ${sourceAmmunition.quantity} ${sourceAmmunition.unit}`);
+    } else if (!productDetailId) {
+      throw new BadRequestException('Phiếu xuất phải có khí tài hoặc đạn dược');
+    }
+
+    const detail = productDetailId
+      ? await this.prisma.productDetail.findUnique({ where: { id: productDetailId }, select: { id: true, productId: true, status: true } })
+      : null;
+    if (productDetailId && (!detail || detail.status !== 'IN_STOCK')) throw new BadRequestException('Chỉ được xuất khí tài đang trong kho');
 
     const destinationRows = await this.prisma.$queryRawUnsafe(
       'SELECT id, "tenantId" FROM "Warehouse" WHERE id = $1 LIMIT 1',
-      dto.toWarehouseId,
+      toWarehouseId,
     ) as Array<{ id: number; tenantId: number }>;
     const destination = destinationRows[0];
     console.log('[TRANSFER DEBUG]', {
       sourceTenantId,
-      productDetailId: dto.productDetailId,
-      requestedWarehouseId: dto.toWarehouseId,
+      productDetailId,
+      ammunitionId,
+      requestedWarehouseId: toWarehouseId,
       destination,
     });
     if (!destination) throw new BadRequestException('Kho nhận không thuộc tài khoản đích');
@@ -240,25 +314,33 @@ export class InventoryService {
       USER: [UserRole.STAFF],
     };
     const [recipient, approver] = await this.prisma.runWithoutTenant(() => Promise.all([
-      this.prisma.user.findFirst({ where: { id: dto.toUserId, tenantId: destination.tenantId, isActive: true } }),
-      this.prisma.user.findFirst({ where: { id: dto.approvalUserId, role: { in: approverRoles[user.role] || [] }, isActive: true } }),
+      this.prisma.user.findFirst({ where: { id: toUserId, tenantId: destination.tenantId, isActive: true } }),
+      this.prisma.user.findFirst({ where: { id: approvalUserId, role: { in: approverRoles[user.role] || [] }, isActive: true } }),
     ]));
     if (!recipient) throw new BadRequestException('Tài khoản nhận không hợp lệ');
     if (!approver) throw new BadRequestException('Tài khoản phê duyệt phải thuộc cấp trên trực tiếp');
 
     const pending = await this.prisma.transfer.findFirst({
-      where: { productDetailId: dto.productDetailId, status: 'PENDING' },
+      where: {
+        status: 'PENDING',
+        OR: [
+          ...(productDetailId ? [{ productDetailId }] : []),
+          ...(ammunitionId ? [{ ammunitionId }] : []),
+        ],
+      },
     });
     if (pending) throw new BadRequestException('Khí tài này đã có phiếu chuyển đang chờ');
 
     return this.prisma.transfer.create({
       data: {
-        productId: detail.productId,
-        productDetailId: detail.id,
+        productId: detail?.productId || sourceAmmunition.productId,
+        productDetailId: detail?.id,
+        ammunitionId,
+        quantity: ammunitionId ? Number(dto.quantity) : 1,
         fromTenantId: sourceTenantId,
         toTenantId: destination.tenantId,
         toUserId: recipient.id,
-        toWarehouseId: dto.toWarehouseId,
+        toWarehouseId,
         approvalTenantId: approver.tenantId,
         approvalUserId: approver.id,
         tenantId: sourceTenantId,
@@ -305,6 +387,18 @@ export class InventoryService {
   async create(dto: CreateInventoryDto) {
     const tenantId = this.prisma.getCurrentTenantId();
     if (!tenantId) throw new BadRequestException("Tenant không hợp lệ");
+    const serialNumbers = (dto.serialNumbers?.length
+      ? dto.serialNumbers
+      : [dto.serialNumber]
+    ).map((serial) => serial.trim());
+
+    if (!serialNumbers.length || serialNumbers.some((serial) => !serial)) {
+      throw new BadRequestException("Vui lòng nhập đầy đủ số hiệu");
+    }
+
+    if (new Set(serialNumbers).size !== serialNumbers.length) {
+      throw new BadRequestException("Các số hiệu không được trùng nhau");
+    }
 
     const [product, warehouse] = await Promise.all([
       this.prisma.product.findUnique({ where: { id: dto.productId }, select: { id: true, tenantId: true } }),
@@ -320,7 +414,7 @@ export class InventoryService {
     const existing = await this.prisma.productDetail.findFirst({
       where: {
         productId: dto.productId,
-        serialNumber: dto.serialNumber,
+        serialNumber: { in: serialNumbers },
       },
     });
 
@@ -329,10 +423,12 @@ export class InventoryService {
     }
 
     return this.prisma.$transaction(async (tx: any) => {
-      const created = await tx.productDetail.create({
-        data: {
-        tenantId,
-        serialNumber: dto.serialNumber,
+      const created: any[] = [];
+      for (const serialNumber of serialNumbers) {
+        const item = await tx.productDetail.create({
+          data: {
+          tenantId,
+          serialNumber,
 
         status: dto.status || "IN_STOCK",
 
@@ -355,11 +451,13 @@ export class InventoryService {
             id: dto.warehouseId,
           },
         },
-        },
-      });
+          },
+        });
+        created.push(item);
+      }
       await tx.product.update({
         where: { id: dto.productId },
-        data: { quantity: { increment: 1 } },
+        data: { quantity: { increment: serialNumbers.length } },
       });
       return created;
     });

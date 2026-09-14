@@ -6,3 +6,71 @@ body,
 #root {
 	font-family: "Be Vietnam Pro", "Segoe UI", Arial, sans-serif;
 }
+
+button {
+	font-family: inherit;
+	font-weight: 600;
+	letter-spacing: 0;
+	transition: background-color 180ms ease, border-color 180ms ease,
+		color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+button:active:not(:disabled) {
+	transform: translateY(1px);
+}
+
+h1,
+h2,
+h3 {
+	letter-spacing: 0;
+}
+
+main h1 {
+	font-size: 1.75rem !important;
+	font-weight: 800 !important;
+	line-height: 1.25;
+}
+
+main h2 {
+	font-size: 1.25rem !important;
+	font-weight: 750 !important;
+	line-height: 1.35;
+}
+
+main h3 {
+	font-size: 1rem !important;
+	font-weight: 700 !important;
+	line-height: 1.4;
+}
+
+input,
+select,
+textarea {
+	font-family: inherit;
+}
+
+.sidebar-scrollbar {
+	scrollbar-width: thin;
+	scrollbar-color: rgba(103, 232, 249, 0.38) transparent;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar {
+	width: 5px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+	border: 1px solid transparent;
+	border-radius: 999px;
+	background: rgba(100, 116, 139, 0.55);
+	background-clip: padding-box;
+	transition: background 180ms ease;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+	background: rgba(103, 232, 249, 0.58);
+	background-clip: padding-box;
+}

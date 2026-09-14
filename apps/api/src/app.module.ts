@@ -14,6 +14,7 @@ import { ProductDetailModule } from './product-detail/product-detail.module';
 import { WarehouseModule } from './warehouse/warehouse.module';
 import { RepairModule } from './repair/repair.module';
 import { LogModule } from './log/log.module';
+import { AmmunitionModule } from './ammunition/ammunition.module';
 import { TenantContextInterceptor } from './prisma/tenant-context.interceptor';
 
 
@@ -30,7 +31,8 @@ import { TenantContextInterceptor } from './prisma/tenant-context.interceptor';
     ProductDetailModule,
     WarehouseModule,
     RepairModule,
-    LogModule
+    LogModule,
+    AmmunitionModule
   ],
 
   controllers: [],

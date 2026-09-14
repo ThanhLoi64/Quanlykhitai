@@ -49,7 +49,7 @@ export default function TransferReceipt({ transfer, onClose }: TransferReceiptPr
             <tr>
               <th className="w-14 border border-slate-800 px-3 py-3">STT</th>
               <th className="border border-slate-800 px-3 py-3 text-left">Tên vũ khí - khí tài</th>
-              <th className="border border-slate-800 px-3 py-3 text-left">Số hiệu</th>
+              <th className="border border-slate-800 px-3 py-3 text-left">{transfer.ammunition ? "Lô" : "Số hiệu"}</th>
               <th className="w-24 border border-slate-800 px-3 py-3">ĐVT</th>
               <th className="w-20 border border-slate-800 px-3 py-3">SL</th>
             </tr>
@@ -58,9 +58,9 @@ export default function TransferReceipt({ transfer, onClose }: TransferReceiptPr
             <tr>
               <td className="border border-slate-800 px-3 py-8 text-center">1</td>
               <td className="border border-slate-800 px-3 py-8">{transfer.product?.name || "-"}</td>
-              <td className="border border-slate-800 px-3 py-8">{transfer.productDetail?.serialNumber || "-"}</td>
-              <td className="border border-slate-800 px-3 py-8 text-center">{transfer.product?.unit || "-"}</td>
-              <td className="border border-slate-800 px-3 py-8 text-center">1</td>
+              <td className="border border-slate-800 px-3 py-8">{transfer.ammunition?.batch || transfer.productDetail?.serialNumber || "-"}</td>
+              <td className="border border-slate-800 px-3 py-8 text-center">{transfer.ammunition?.unit || transfer.product?.unit || "-"}</td>
+              <td className="border border-slate-800 px-3 py-8 text-center">{transfer.quantity || 1}</td>
             </tr>
           </tbody>
         </table>

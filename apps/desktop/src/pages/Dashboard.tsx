@@ -14,12 +14,25 @@ import LogComponent from "../components/LogComponent";
 import TransferReceipt from "../components/TransferReceipt";
 import { Bell } from "lucide-react";
 import { Menu, MenuItem, Badge, IconButton } from "@mui/material";
+import {
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+} from "recharts";
 
 type ChildProduct = {
   name: string;
   details: unknown[];
   category?: { name?: string } | null;
 };
+
+function isAmmunition(product: any) {
+  const text = `${product.name || ""} ${product.category?.name || ""}`.toLowerCase();
+  return /đạn|dan duoc|ammunition/.test(text);
+}
 
 export default function Dashboard() {
   const [products, setProducts] = useState(0);
@@ -39,6 +52,7 @@ export default function Dashboard() {
   const [childSummary, setChildSummary] = useState<any[]>([]);
   const [selectedChildTenantId, setSelectedChildTenantId] = useState<number | null>(null);
   const [receiptTransfer, setReceiptTransfer] = useState<any | null>(null);
+  const [ammunition, setAmmunition] = useState<any[]>([]);
 
   const user = useMemo(() => {
     const data = localStorage.getItem("user");
@@ -79,6 +93,8 @@ export default function Dashboard() {
       const grouped: any = {};
 
       data.forEach((product: any) => {
+        if (isAmmunition(product)) return;
+
         const categoryName = product.category?.name || "Khác";
 
         if (!grouped[categoryName]) {
@@ -115,6 +131,9 @@ export default function Dashboard() {
     api.get("/repairs").then((res) => {
       setRepairs(res.data.length);
     });
+    api.get("/ammunition").then((res) => {
+      setAmmunition(res.data);
+    }).catch(() => setAmmunition([]));
   }, []);
 
   useEffect(() => {
@@ -209,6 +228,15 @@ export default function Dashboard() {
       color: "indigo",
     },
   ];
+  const ammunitionByType = Object.values(
+    ammunition.reduce((summary: Record<string, { name: string; quantity: number }>, item: any) => {
+      const name = item.product?.name || "Chưa xác định";
+      summary[name] ||= { name, quantity: 0 };
+      summary[name].quantity += Number(item.quantity) || 0;
+      return summary;
+    }, {}),
+  );
+  const ammunitionColors = ["#2563eb", "#16a34a", "#f97316", "#dc2626", "#7c3aed", "#0891b2"];
   return (
     <div className="space-y-8 pt-2">
       {/* Header */}
@@ -813,6 +841,58 @@ duration-300
             );
           })()}
         </div>
+      </div>
+      <div className="rounded-xl border bg-white p-6 shadow-sm">
+        <h2 className="mb-6 text-xl font-bold text-slate-800">Thống kê đạn dược</h2>
+        {ammunition.length === 0 ? (
+          <p className="text-slate-500">Chưa có dữ liệu đạn dược.</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="min-h-80">
+              <ResponsiveContainer width="100%" height={320}>
+                <PieChart>
+                  <Pie
+                    data={ammunitionByType}
+                    dataKey="quantity"
+                    nameKey="name"
+                    cx="50%"
+                    cy="48%"
+                    outerRadius={105}
+                    label={({ name, percent }) => `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`}
+                  >
+                    {ammunitionByType.map((item: any, index: number) => (
+                      <Cell key={item.name} fill={ammunitionColors[index % ammunitionColors.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => [`${value} viên`, "Số lượng"]} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <table className="w-full min-w-140 text-left text-sm">
+                <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Loại đạn</th>
+                    <th className="px-4 py-3 font-semibold">Lô</th>
+                    <th className="px-4 py-3 text-right font-semibold">Số lượng</th>
+                    <th className="px-4 py-3 text-right font-semibold">Năm SX</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {ammunition.map((item: any) => (
+                    <tr key={item.id} className="hover:bg-slate-50">
+                      <td className="px-4 py-3 font-medium text-slate-700">{item.product?.name || "-"}</td>
+                      <td className="px-4 py-3 text-slate-600">{item.batch || "-"}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-slate-800">{item.quantity} {item.unit || "viên"}</td>
+                      <td className="px-4 py-3 text-right text-slate-600">{item.productionYear || "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
       <div className="bg-white rounded-xl shadow-sm border p-6">
         <LogComponent />

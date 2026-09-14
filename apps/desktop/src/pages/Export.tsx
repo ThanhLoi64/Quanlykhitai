@@ -6,6 +6,7 @@ import { Delete, Edit } from "@mui/icons-material";
 import { toast } from "sonner";
 import api from "../api/api";
 import TransferReceipt from "../components/TransferReceipt";
+import { useLocation } from "react-router-dom";
 
 type Recipient = {
   userId: number;
@@ -45,20 +46,26 @@ export default function Export() {
   const [loading, setLoading] = useState(false);
   const [receiptTransfer, setReceiptTransfer] = useState<any | null>(null);
   const [activeTab, setActiveTab] = useState<"export" | "history">("export");
+  const [ammunition, setAmmunition] = useState<any[]>([]);
+  const [selectedAmmunition, setSelectedAmmunition] = useState<any | null>(null);
+  const [ammunitionQuantity, setAmmunitionQuantity] = useState("");
+  const exportMode = useLocation().pathname.endsWith("/ammunition") ? "ammunition" : "equipment";
 
   async function load() {
     try {
-      const [productsRes, inventoryRes, outgoingRes, optionsRes] = await Promise.all([
+      const [productsRes, inventoryRes, outgoingRes, optionsRes, ammunitionRes] = await Promise.all([
         api.get("/products"),
         api.get("/inventory"),
         api.get("/inventory/transfer/outgoing"),
         api.get("/inventory/transfer/options"),
+        api.get("/ammunition"),
       ]);
       setProducts(productsRes.data);
       setItems(inventoryRes.data);
       setOutgoing(outgoingRes.data);
       setRecipients(optionsRes.data.recipients);
       setApprovers(optionsRes.data.approvers);
+      setAmmunition(ammunitionRes.data);
     } catch {
       toast.error("Không tải được dữ liệu xuất kho");
     }
@@ -72,16 +79,29 @@ export default function Export() {
     () => new Map(outgoing.filter((transfer) => transfer.status === "PENDING").map((transfer) => [transfer.productDetailId, transfer])),
     [outgoing],
   );
+  const pendingByAmmunitionId = useMemo(
+    () => new Map(outgoing.filter((transfer) => transfer.status === "PENDING" && transfer.ammunitionId).map((transfer) => [transfer.ammunitionId, transfer])),
+    [outgoing],
+  );
 
   const categories = [
-    ...new Map(products.map((product) => [product.category?.id ?? product.categoryId, product.category])).values(),
+    ...new Map(
+      products
+        .filter((product) => {
+          const productText = `${product.name || ""} ${product.category?.name || ""}`.toLowerCase();
+          return !/đạn|dan duoc|ammunition/.test(productText);
+        })
+        .map((product) => [product.category?.id ?? product.categoryId, product.category]),
+    ).values(),
   ].filter(Boolean);
 
   const filteredItems = items.filter((item) => {
     const categoryMatches = selectedCategory === "all"
       || item.product?.categoryId === Number(selectedCategory)
       || item.product?.category?.id === Number(selectedCategory);
-    return categoryMatches && (item.status === "IN_STOCK" || pendingByDetailId.has(item.id));
+    const productText = `${item.product?.name || ""} ${item.product?.category?.name || ""}`.toLowerCase();
+    const isAmmo = /đạn|dan duoc|ammunition/.test(productText);
+    return !isAmmo && categoryMatches && (item.status === "IN_STOCK" || pendingByDetailId.has(item.id));
   });
 
   const rows = filteredItems.map((item, index) => {
@@ -201,6 +221,45 @@ export default function Export() {
     transfer,
   }));
 
+  const ammunitionColumns: GridColDef[] = [
+    { field: "stt", headerName: "STT", width: 80 },
+    { field: "product", headerName: "Loại đạn",flex: 1, minWidth: 150 },
+    { field: "batch", headerName: "Lô", minWidth: 150 },
+    { field: "unit", headerName: "Đơn vị tính", width: 140 },
+    { field: "quantity", headerName: "Tồn kho", width: 130 },
+    { field: "productionYear", headerName: "Năm sản xuất", width: 150 },
+    { field: "warehouse", headerName: "Đầu mối", flex: 1.1, minWidth: 180 },
+    {
+      field: "action",
+      headerName: "Thao tác",
+      width: 240,
+      sortable: false,
+      renderCell: (params) => params.row.pending ? (
+        <div className="flex items-center gap-2">
+          <Chip size="small" color="warning" label="Đang chờ duyệt" />
+          <Button size="small" variant="outlined" onClick={() => setReceiptTransfer(params.row.pending)}>Xem phiếu</Button>
+        </div>
+      ) : (
+        <Button size="small" variant="contained" color="warning" onClick={() => { setSelectedAmmunition(params.row.raw); setAmmunitionQuantity(""); }}>
+          Xuất đạn
+        </Button>
+      ),
+    },
+  ];
+
+  const ammunitionRows = ammunition.map((item, index) => ({
+    id: item.id,
+    stt: index + 1,
+    product: item.product?.name || "-",
+    batch: item.batch,
+    unit: item.unit || "viên",
+    quantity: item.quantity,
+    productionYear: item.productionYear,
+    warehouse: item.warehouse?.name || "-",
+    pending: pendingByAmmunitionId.get(item.id),
+    raw: item,
+  }));
+
   function openModal(item: any) {
     setSelectedItem(item);
     setRecipientUserId("");
@@ -245,12 +304,51 @@ export default function Export() {
     }
   }
 
+  async function createAmmunitionExport() {
+    const quantity = Number(ammunitionQuantity);
+    if (!selectedAmmunition || !recipientUserId || !warehouseId || !approvalUserId || !Number.isInteger(quantity) || quantity <= 0) {
+      toast.error("Vui lòng chọn tài khoản nhận, kho nhận, cấp phê duyệt và số lượng");
+      return;
+    }
+    if (quantity > selectedAmmunition.quantity) {
+      toast.error(`Tồn kho chỉ còn ${selectedAmmunition.quantity} ${selectedAmmunition.unit || "viên"}`);
+      return;
+    }
+
+    setLoading(true);
+    const loadingToast = toast.loading("Đang xuất đạn dược...");
+    try {
+      await api.post("/inventory/transfer", {
+        ammunitionId: selectedAmmunition.id,
+        quantity,
+        toUserId: Number(recipientUserId),
+        toWarehouseId: Number(warehouseId),
+        approvalUserId: Number(approvalUserId),
+      });
+      toast.dismiss(loadingToast);
+      toast.success("Xuất đạn dược thành công");
+      setSelectedAmmunition(null);
+      setRecipientUserId("");
+      setWarehouseId("");
+      setApprovalUserId("");
+      await load();
+    } catch (error: any) {
+      toast.dismiss(loadingToast);
+      const message = Array.isArray(error.response?.data?.message)
+        ? error.response.data.message.join(", ")
+        : error.response?.data?.message;
+      toast.error(message || "Không thể xuất đạn dược");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const selectedRecipient = recipients.find((recipient) => recipient.userId === Number(recipientUserId));
 
   return (
     <div className="space-y-6 p-5">
       <div>
-        <h1 className="text-2xl font-bold">XUẤT KHO VŨ KHÍ - KHÍ TÀI</h1>
+        <h1 className="text-2xl font-bold">{exportMode === "ammunition" ? "XUẤT KHO ĐẠN DƯỢC" : "XUẤT KHO VŨ KHÍ - KHÍ TÀI"}</h1>
         <p className="mt-2 text-sm text-slate-500">Theo dõi các phiếu xuất kho và trạng thái phê duyệt.</p>
       </div>
 
@@ -263,7 +361,8 @@ export default function Export() {
         </button>
       </div>
 
-      {activeTab === "export" ? <div className="overflow-hidden rounded-xl bg-white shadow">
+      {activeTab === "export" ? <>
+      {exportMode === "equipment" ? <div className="overflow-hidden rounded-xl bg-white shadow">
         <div className="border-b px-4 pt-2">
           <div className="flex items-center gap-2 overflow-x-auto">
             <button onClick={() => setSelectedCategory("all")} className={`whitespace-nowrap border-b-2 px-5 py-3 font-semibold ${selectedCategory === "all" ? "border-blue-600 text-blue-600" : "border-transparent text-slate-500"}`}>
@@ -279,8 +378,12 @@ export default function Export() {
         <Box sx={{ height: 450, bgcolor: "white" }}>
           <DataGrid rows={rows} columns={columns} pageSizeOptions={[10, 20, 50]} initialState={{ pagination: { paginationModel: { pageSize: 10 } } }} disableRowSelectionOnClick />
         </Box>
-      </div>
-      : <div className="overflow-hidden rounded-xl bg-white shadow">
+      </div> : <div className="overflow-hidden rounded-xl bg-white shadow">
+        <Box sx={{ height: 450, bgcolor: "white" }}>
+          <DataGrid rows={ammunitionRows} columns={ammunitionColumns} pageSizeOptions={[10, 20, 50]} initialState={{ pagination: { paginationModel: { pageSize: 10 } } }} disableRowSelectionOnClick />
+        </Box>
+      </div>}
+      </> : <div className="overflow-hidden rounded-xl bg-white shadow">
         <Box sx={{ height: 450, bgcolor: "white" }}>
           <DataGrid rows={historyRows} columns={historyColumns} pageSizeOptions={[10, 20, 50]} initialState={{ pagination: { paginationModel: { pageSize: 10 } } }} disableRowSelectionOnClick />
         </Box>
@@ -315,6 +418,46 @@ export default function Export() {
             <div className="mt-6 flex justify-end gap-3">
               <button onClick={() => setSelectedItem(null)} className="rounded-lg border px-5 py-2">Hủy</button>
               <button disabled={loading} onClick={createExport} className="rounded-lg bg-blue-600 px-6 py-2 text-white hover:bg-blue-700 disabled:opacity-60">{loading ? "Đang gửi..." : "Gửi phê duyệt"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {selectedAmmunition && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="relative w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <button onClick={() => setSelectedAmmunition(null)} className="absolute right-4 top-4 text-xl text-slate-500 hover:text-red-500">✕</button>
+            <h2 className="mb-2 text-xl font-bold">Xuất kho đạn dược</h2>
+            <p className="mb-5 text-sm text-slate-500">{selectedAmmunition.product?.name} - {selectedAmmunition.batch}</p>
+            <div className="space-y-4">
+              <label className="block text-sm font-medium">Đầu mối xuất
+                <input className="mt-1 w-full rounded border bg-slate-50 p-2 text-slate-600" value={selectedAmmunition.warehouse?.name || "Chưa chọn"} readOnly />
+              </label>
+              <label className="block text-sm font-medium">Tài khoản nhận
+                <select className="mt-1 w-full rounded border p-2" value={recipientUserId} onChange={(event) => { setRecipientUserId(event.target.value); setWarehouseId(""); }}>
+                  <option value="">Chọn tài khoản nhận</option>
+                  {recipients.map((recipient) => <option key={recipient.userId} value={recipient.userId}>{recipient.username} - {recipient.fullName}</option>)}
+                </select>
+              </label>
+              <label className="block text-sm font-medium">Kho nhận
+                <select className="mt-1 w-full rounded border p-2" value={warehouseId} onChange={(event) => setWarehouseId(event.target.value)} disabled={!selectedRecipient}>
+                  <option value="">Chọn kho nhận</option>
+                  {selectedRecipient?.warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}
+                </select>
+              </label>
+              <label className="block text-sm font-medium">Cấp phê duyệt
+                <select className="mt-1 w-full rounded border p-2" value={approvalUserId} onChange={(event) => setApprovalUserId(event.target.value)}>
+                  <option value="">Chọn tài khoản cấp trên phê duyệt</option>
+                  {approvers.map((approver) => <option key={approver.id} value={approver.id}>{approver.username} - {approver.fullName} ({approver.role})</option>)}
+                </select>
+              </label>
+              <label className="block text-sm font-medium">Số lượng xuất
+              <input type="number" min="1" max={selectedAmmunition.quantity} className="mt-1 w-full rounded border p-2" value={ammunitionQuantity} onChange={(event) => setAmmunitionQuantity(event.target.value)} />
+              </label>
+            </div>
+            <p className="mt-2 text-sm text-slate-500">Tồn hiện tại: {selectedAmmunition.quantity} {selectedAmmunition.unit || "viên"}</p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button onClick={() => setSelectedAmmunition(null)} className="rounded-lg border px-5 py-2">Hủy</button>
+              <button disabled={loading} onClick={createAmmunitionExport} className="rounded-lg bg-orange-600 px-6 py-2 text-white hover:bg-orange-700 disabled:opacity-60">{loading ? "Đang xuất..." : "Xuất kho"}</button>
             </div>
           </div>
         </div>

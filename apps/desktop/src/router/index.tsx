@@ -21,6 +21,7 @@ import BrockenWhatching from "../pages/BrockenWatching";
 import Information from "../pages/Infomation";
 import ChildAccounts from "../pages/ChildAccounts";
 import WeaponSearch from "../pages/WeaponSearch";
+import Ammunition from "../pages/Ammunition";
 
 
 
@@ -49,7 +50,9 @@ return (
         <Route path="/owners" element={<Owner />} />
 
         <Route path="/inventory" element={<Inventory />} />
+        <Route path="/inventory/ammunition" element={<Ammunition />} />
         <Route path="/exports" element={<Export />} />
+        <Route path="/exports/ammunition" element={<Export />} />
         <Route path="/warehouses" element={<Warehouse />} />
         <Route path="/logs" element={<Log />} />
         <Route path="/broken-watching" element={<BrockenWhatching />} />

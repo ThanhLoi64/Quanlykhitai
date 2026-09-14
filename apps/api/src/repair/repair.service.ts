@@ -40,15 +40,20 @@ export class RepairService {
     });
   }
 
-  async create(dto: CreateRepairDto) {
+  async create(dto: CreateRepairDto, image?: any) {
     const tenantId = this.prisma.getCurrentTenantId();
     if (!tenantId) {
       throw new BadRequestException('Tenant không hợp lệ');
     }
 
+    const productDetailId = Number(dto.productDetailId);
+    if (!Number.isInteger(productDetailId)) {
+      throw new BadRequestException('Mã chi tiết kho không hợp lệ');
+    }
+
     const detail = await this.prisma.productDetail.findUnique({
       where: {
-        id: dto.productDetailId,
+        id: productDetailId,
       },
       include: {
         product: true,
@@ -59,13 +64,15 @@ export class RepairService {
       throw new BadRequestException('Chi tiết kho không tồn tại');
     }
 
+    const uploadedImage = image ? await this.uploadImage(image) : undefined;
+
     return this.prisma.$transaction(async (tx) => {
       const created = await tx.repairRecord.create({
         data: {
           tenantId,
           productDetail: {
             connect: {
-              id: dto.productDetailId,
+              id: productDetailId,
             },
           },
           damageStatus: dto.damageStatus ?? null,
@@ -77,6 +84,8 @@ export class RepairService {
           repairUnit: dto.repairUnit ?? null,
           receivedDate: dto.receivedDate ? new Date(dto.receivedDate) : null,
           note: dto.note ?? null,
+          image: uploadedImage?.url,
+          imageFileId: uploadedImage?.fileId,
         },
         include: {
           productDetail: {
@@ -89,7 +98,7 @@ export class RepairService {
 
       await tx.productDetail.update({
         where: {
-          id: dto.productDetailId,
+          id: productDetailId,
         },
         data: {
           status: 'REPAIR',
@@ -100,7 +109,7 @@ export class RepairService {
     });
   }
 
-  async update(id: number, dto: UpdateRepairDto) {
+  async update(id: number, dto: UpdateRepairDto, image?: any) {
     const existing = await this.prisma.repairRecord.findUnique({
       where: {
         id,
@@ -114,15 +123,21 @@ export class RepairService {
       throw new BadRequestException('Bản ghi sửa chữa không tồn tại');
     }
 
-    const productDetailId = dto.productDetailId ?? existing.productDetailId;
+    const productDetailId =
+      dto.productDetailId !== undefined
+        ? Number(dto.productDetailId)
+        : existing.productDetailId;
+
+    if (!Number.isInteger(productDetailId)) {
+      throw new BadRequestException('Mã chi tiết kho không hợp lệ');
+    }
 
     if (
-      dto.productDetailId &&
-      dto.productDetailId !== existing.productDetailId
+      productDetailId !== existing.productDetailId
     ) {
       const newDetail = await this.prisma.productDetail.findUnique({
         where: {
-          id: dto.productDetailId,
+          id: productDetailId,
         },
       });
 
@@ -131,10 +146,11 @@ export class RepairService {
       }
     }
 
+    const uploadedImage = image ? await this.uploadImage(image) : undefined;
+
     return this.prisma.$transaction(async (tx) => {
       if (
-        dto.productDetailId &&
-        dto.productDetailId !== existing.productDetailId
+        productDetailId !== existing.productDetailId
       ) {
         await tx.productDetail.update({
           where: {
@@ -150,7 +166,7 @@ export class RepairService {
 
         await tx.productDetail.update({
           where: {
-            id: dto.productDetailId,
+            id: productDetailId,
           },
           data: {
             status: 'REPAIR',
@@ -168,12 +184,15 @@ export class RepairService {
         repairUnit: dto.repairUnit,
         receivedDate: dto.receivedDate ? new Date(dto.receivedDate) : undefined,
         note: dto.note,
+        ...(uploadedImage
+          ? { image: uploadedImage.url, imageFileId: uploadedImage.fileId }
+          : {}),
       };
 
-      if (dto.productDetailId !== undefined) {
+      if (productDetailId !== existing.productDetailId) {
         data.productDetail = {
           connect: {
-            id: dto.productDetailId,
+            id: productDetailId,
           },
         };
       }
@@ -192,6 +211,31 @@ export class RepairService {
         },
       });
     });
+  }
+
+  private async uploadImage(image: any): Promise<{ url: string; fileId: string }> {
+    const privateKey = process.env.IMAGEKIT_PRIVATE_KEY;
+    if (!privateKey) throw new BadRequestException('IMAGEKIT_PRIVATE_KEY chưa được cấu hình');
+
+    const form = new FormData();
+    form.append('file', new Blob([image.buffer], { type: image.mimetype }), image.originalname);
+    form.append('fileName', `${Date.now()}-${image.originalname}`);
+    form.append('folder', '/quan-ly-khi-tai/repairs');
+
+    const response = await fetch('https://upload.imagekit.io/api/v1/files/upload', {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${privateKey}:`).toString('base64')}`,
+      },
+      body: form,
+    });
+
+    if (!response.ok) {
+      throw new BadRequestException(`ImageKit upload failed: ${await response.text()}`);
+    }
+
+    const result = await response.json() as { url: string; fileId: string };
+    return { url: result.url, fileId: result.fileId };
   }
 
   async remove(id: number) {

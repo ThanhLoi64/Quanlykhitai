@@ -25,6 +25,11 @@ import type { GridColDef } from "@mui/x-data-grid";
 
 import { useNavigate } from "react-router-dom";
 
+function isAmmunition(product: any) {
+  const text = `${product.name || ""} ${product.category?.name || ""}`.toLowerCase();
+  return /đạn|dan duoc|ammunition/.test(text);
+}
+
 export default function Products() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -64,12 +69,27 @@ export default function Products() {
 
   async function load() {
     try {
-      const [productRes, categoryRes] = await Promise.all([
+      const [productRes, categoryRes, ammunitionRes] = await Promise.all([
         api.get("/products"),
         api.get("/categories"),
+        api.get("/ammunition"),
       ]);
 
-      setProducts(productRes.data);
+      const ammunitionTotals = ammunitionRes.data.reduce(
+        (totals: Record<number, number>, item: any) => {
+          totals[item.productId] = (totals[item.productId] || 0) + Number(item.quantity || 0);
+          return totals;
+        },
+        {},
+      );
+
+      setProducts(
+        productRes.data.map((product: any) =>
+          isAmmunition(product)
+            ? { ...product, quantity: ammunitionTotals[product.id] || 0 }
+            : product,
+        ),
+      );
       setCategories(categoryRes.data);
 
       // Nếu tab hiện tại không còn tồn tại thì về Tất cả

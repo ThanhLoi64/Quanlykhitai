@@ -20,6 +20,19 @@ export class CreateInventoryDto {
   serialNumber!: string;
 
   @ApiPropertyOptional({
+    example: ['AK20250001', 'AK20250002', 'AK20250003'],
+    description: 'Danh sách số hiệu khi nhập nhiều khí tài cùng lúc',
+    type: [String],
+  })
+  serialNumbers?: string[];
+
+  @ApiPropertyOptional({
+    example: 3,
+    description: 'Số lượng khí tài cần nhập',
+  })
+  quantity?: number;
+
+  @ApiPropertyOptional({
     example: '01 băng đạn, dây đeo',
     description: 'Phụ kiện đi kèm',
   })
