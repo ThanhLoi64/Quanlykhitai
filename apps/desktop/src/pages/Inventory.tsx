@@ -4,10 +4,15 @@ import { toast } from "sonner";
 import { DataGrid } from "@mui/x-data-grid";
 import type { GridColDef } from "@mui/x-data-grid";
 import { Box, Button, Chip } from "@mui/material";
-import { Delete, Edit } from "@mui/icons-material";
+import { Add, Delete, Edit } from "@mui/icons-material";
 import { useRef } from "react";
 import * as XLSX from "xlsx";
 import { downloadInventoryTemplate } from "../utils/excelTemplates";
+
+function isAmmunition(product: any) {
+  const text = `${product.name || ""} ${product.category?.name || ""}`.toLowerCase();
+  return /đạn|dan duoc|đạn dược|ammunition/.test(text);
+}
 
 export default function Inventory() {
   const [products, setProducts] = useState<any[]>([]);
@@ -18,7 +23,9 @@ export default function Inventory() {
     "all",
   );
   const [productId, setProductId] = useState("");
-  const [serialNumber, setSerialNumber] = useState("");
+  const [quantity, setQuantity] = useState("1");
+  const [serialInput, setSerialInput] = useState("");
+  const [serialNumbers, setSerialNumbers] = useState<string[]>([]);
   const [importOrder, setImportOrder] = useState("");
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -125,8 +132,8 @@ export default function Inventory() {
       const warehouseRes = await api.get("/warehouses");
       setWarehouses(warehouseRes.data);
 
-      setProducts(productRes.data);
-      setItems(inventoryRes.data);
+      setProducts(productRes.data.filter((product: any) => !isAmmunition(product)));
+      setItems(inventoryRes.data.filter((item: any) => !isAmmunition(item.product)));
     } catch {
       toast.error("Không tải được dữ liệu");
     }
@@ -151,18 +158,30 @@ export default function Inventory() {
   }
 
   async function create() {
-    if (!productId || !serialNumber) {
-      toast.error("Vui lòng nhập đầy đủ");
+    const normalizedSerials = serialNumbers.map((serial) => serial.trim());
+    if (!productId) {
+      toast.error("Vui lòng chọn loại khí tài");
       return;
     }
 
-    const duplicate = items.find(
+    if (normalizedSerials.length < Number(quantity)) {
+      toast.error(`Còn thiếu ${Number(quantity) - normalizedSerials.length} số hiệu`);
+      return;
+    }
+
+    if (normalizedSerials.length > Number(quantity)) {
+      toast.error(`Chỉ được thêm tối đa ${quantity} số hiệu`);
+      return;
+    }
+
+    const duplicateInForm = new Set(normalizedSerials).size !== normalizedSerials.length;
+    const duplicate = items.some(
       (item) =>
         item.productId === Number(productId) &&
-        item.serialNumber?.trim() === serialNumber.trim(),
+        normalizedSerials.includes(item.serialNumber?.trim()),
     );
 
-    if (duplicate) {
+    if (duplicate || duplicateInForm) {
       toast.error("Số hiệu đã tồn tại vui lòng nhập lại");
       return;
     }
@@ -171,14 +190,18 @@ export default function Inventory() {
       await api.post("/inventory", {
         productId: Number(productId),
         warehouseId: Number(warehouseId),
-        serialNumber,
+        quantity: Number(quantity),
+        serialNumber: normalizedSerials[0],
+        serialNumbers: normalizedSerials,
         importOrder,
       });
 
       toast.success("Nhập kho thành công");
 
       setProductId("");
-      setSerialNumber("");
+      setQuantity("1");
+      setSerialInput("");
+      setSerialNumbers([]);
       setImportOrder("");
 
       setOpen(false); // đóng modal
@@ -193,7 +216,9 @@ export default function Inventory() {
     setEditId(null);
     setProductId("");
     setWarehouseId("");
-    setSerialNumber("");
+    setQuantity("1");
+    setSerialInput("");
+    setSerialNumbers([]);
     setImportOrder("");
     setOpen(true);
   }
@@ -202,13 +227,21 @@ export default function Inventory() {
     setEditId(item.id);
     setProductId(String(item.productId || item.product?.id || ""));
     setWarehouseId(String(item.warehouseId || item.warehouse?.id || ""));
-    setSerialNumber(item.serialNumber || "");
+    setQuantity("1");
+    setSerialInput(item.serialNumber || "");
+    setSerialNumbers(item.serialNumber ? [item.serialNumber] : []);
     setImportOrder(item.importOrder || "");
     setOpen(true);
   }
   async function save() {
-    if (!productId || !serialNumber) {
-      toast.error("Vui lòng nhập đầy đủ");
+    const normalizedSerials = serialNumbers.map((serial) => serial.trim());
+    if (!productId) {
+      toast.error("Vui lòng chọn loại khí tài");
+      return;
+    }
+
+    if (!normalizedSerials[0]) {
+      toast.error("Vui lòng nhập số hiệu");
       return;
     }
 
@@ -218,7 +251,7 @@ export default function Inventory() {
           (item) =>
             item.id !== editId &&
             item.productId === Number(productId) &&
-            item.serialNumber?.trim() === serialNumber.trim(),
+            item.serialNumber?.trim() === normalizedSerials[0],
         );
 
         if (duplicate) {
@@ -229,7 +262,7 @@ export default function Inventory() {
         await api.patch(`/inventory/${editId}`, {
           productId: Number(productId),
           warehouseId: Number(warehouseId),
-          serialNumber,
+          serialNumber: normalizedSerials[0],
           importOrder,
         });
         toast.success("Cập nhật thành công");
@@ -241,13 +274,48 @@ export default function Inventory() {
       setEditId(null);
       setProductId("");
       setWarehouseId("");
-      setSerialNumber("");
+      setQuantity("1");
+      setSerialInput("");
+      setSerialNumbers([]);
       setImportOrder("");
       setOpen(false);
       load();
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Không thể lưu thay đổi");
     }
+  }
+
+  function addSerialNumber() {
+    const serial = serialInput.trim();
+    if (!serial) {
+      toast.error("Vui lòng nhập số hiệu trước khi thêm");
+      return;
+    }
+
+    if (!editId && serialNumbers.length >= Number(quantity)) {
+      toast.error(`Chỉ được thêm tối đa ${quantity} số hiệu`);
+      return;
+    }
+
+    if (serialNumbers.some((item) => item.trim() === serial)) {
+      toast.error("Số hiệu này đã được thêm");
+      return;
+    }
+
+    if (
+      productId &&
+      items.some(
+        (item) =>
+          item.productId === Number(productId) &&
+          item.serialNumber?.trim() === serial,
+      )
+    ) {
+      toast.error("Số hiệu đã tồn tại trong kho");
+      return;
+    }
+
+    setSerialNumbers((current) => [...current, serial]);
+    setSerialInput("");
   }
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -330,6 +398,14 @@ export default function Inventory() {
   }));
   return (
     <div className="p-5 space-y-6">
+      <div className="flex gap-2 border-b border-slate-200">
+        {/* <NavLink to="/inventory" end className={({ isActive }) => `border-b-2 px-4 py-3 font-semibold ${isActive ? "border-blue-600 text-blue-600" : "border-transparent text-slate-500"}`}>
+          Khí tài, vũ khí
+        </NavLink>
+        <NavLink to="/inventory/ammunition" className={({ isActive }) => `border-b-2 px-4 py-3 font-semibold ${isActive ? "border-blue-600 text-blue-600" : "border-transparent text-slate-500"}`}>
+          Đạn dược
+        </NavLink> */}
+      </div>
       <h1 className="text-2xl font-bold">QUẢN LÝ KHO KHÍ TÀI - VŨ KHÍ</h1>
 
       {/* FORM */}
@@ -525,14 +601,70 @@ export default function Inventory() {
                 </select>
               </div>
 
-              <div>
+              {!editId && (
+                <div>
+                  <label>Số lượng</label>
+
+                  <input
+                    type="number"
+                    min="1"
+                    className="w-full border rounded p-2 mt-1"
+                    value={quantity}
+                    onChange={(e) => {
+                      const nextQuantity = Math.max(1, Number(e.target.value) || 1);
+                      setQuantity(String(nextQuantity));
+                    }}
+                  />
+                </div>
+              )}
+
+              <div className={!editId ? "md:col-span-2" : ""}>
                 <label>Số hiệu</label>
 
-                <input
-                  className="w-full border rounded p-2 mt-1"
-                  value={serialNumber}
-                  onChange={(e) => setSerialNumber(e.target.value)}
-                />
+                <div className="mt-1 flex gap-2">
+                  <input
+                    className="min-w-0 flex-1 border rounded p-2"
+                    placeholder="Nhập số hiệu"
+                    value={serialInput}
+                    onChange={(e) => {
+                      setSerialInput(e.target.value);
+                      if (editId) setSerialNumbers([e.target.value]);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !editId) {
+                        e.preventDefault();
+                        addSerialNumber();
+                      }
+                    }}
+                  />
+                  {!editId && (
+                    <button
+                      type="button"
+                      onClick={addSerialNumber}
+                      className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-2 font-medium text-slate-700 hover:bg-slate-200"
+                    >
+                      <Add fontSize="small" />
+                      Thêm
+                    </button>
+                  )}
+                </div>
+
+                {!editId && serialNumbers.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {serialNumbers.map((serial) => (
+                      <Chip
+                        key={serial}
+                        label={serial}
+                        onDelete={() =>
+                          setSerialNumbers((current) =>
+                            current.filter((item) => item !== serial),
+                          )
+                        }
+                        variant="outlined"
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>

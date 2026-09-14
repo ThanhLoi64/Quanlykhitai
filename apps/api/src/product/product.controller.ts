@@ -7,8 +7,11 @@ Delete,
 Body,
 Param,
 Req,
-UseGuards
+  UseGuards,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 
 import { ProductService } from './product.service';
@@ -86,11 +89,13 @@ JwtAuthGuard,
 RolesGuard
 )
 @Roles('SYSADMIN', 'ADMIN', 'STAFF', 'USER')
+@UseInterceptors(FileInterceptor('image'))
 async create(
 @Req() req:any,
-@Body() dto:CreateProductDto
+@Body() dto:CreateProductDto,
+@UploadedFile() image?: any,
 ){
-  const created = await this.productService.create(dto);
+  const created = await this.productService.create(dto, image);
   await this.logService.create(req.user, 'Thêm vũ khí mới', {
     id: created.id,
     name: dto.name,
@@ -108,16 +113,19 @@ JwtAuthGuard,
 RolesGuard
 )
 @Roles('SYSADMIN', 'ADMIN', 'STAFF', 'USER')
+@UseInterceptors(FileInterceptor('image'))
 async update(
 @Req() req:any,
 @Param('id') id:string,
 
-@Body() dto:UpdateProductDto
+@Body() dto:UpdateProductDto,
+@UploadedFile() image?: any,
 
 ){
   const updated = await this.productService.update(
     Number(id),
     dto,
+    image,
   );
   await this.logService.create(req.user, 'Cập nhật vũ khí', {
     id: updated.id,

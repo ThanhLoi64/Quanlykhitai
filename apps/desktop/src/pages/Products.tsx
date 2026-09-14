@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import api from "../api/api";
+import qbz95 from "../assets/img-weapons-qbz95.webp";
 
 import {
   Box,
@@ -24,6 +25,11 @@ import type { GridColDef } from "@mui/x-data-grid";
 
 import { useNavigate } from "react-router-dom";
 
+function isAmmunition(product: any) {
+  const text = `${product.name || ""} ${product.category?.name || ""}`.toLowerCase();
+  return /đạn|dan duoc|ammunition/.test(text);
+}
+
 export default function Products() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -32,6 +38,11 @@ export default function Products() {
   const [editId, setEditId] = useState<number | null>(null);
 
   const [openModal, setOpenModal] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [modalTab, setModalTab] = useState("Thông tin chung");
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Tab đang được chọn
   const [selectedCategory, setSelectedCategory] = useState<number | "all">(
@@ -46,6 +57,9 @@ export default function Products() {
     classification: "",
     storageLocation: "",
     note: "",
+    origin: "",
+    usageHistory: "",
+    documents: "",
     categoryId: 0,
   });
 
@@ -55,12 +69,27 @@ export default function Products() {
 
   async function load() {
     try {
-      const [productRes, categoryRes] = await Promise.all([
+      const [productRes, categoryRes, ammunitionRes] = await Promise.all([
         api.get("/products"),
         api.get("/categories"),
+        api.get("/ammunition"),
       ]);
 
-      setProducts(productRes.data);
+      const ammunitionTotals = ammunitionRes.data.reduce(
+        (totals: Record<number, number>, item: any) => {
+          totals[item.productId] = (totals[item.productId] || 0) + Number(item.quantity || 0);
+          return totals;
+        },
+        {},
+      );
+
+      setProducts(
+        productRes.data.map((product: any) =>
+          isAmmunition(product)
+            ? { ...product, quantity: ammunitionTotals[product.id] || 0 }
+            : product,
+        ),
+      );
       setCategories(categoryRes.data);
 
       // Nếu tab hiện tại không còn tồn tại thì về Tất cả
@@ -98,6 +127,9 @@ export default function Products() {
 
   function openCreate() {
     setEditId(null);
+    setImageFile(null);
+    setImagePreview(null);
+    setModalTab("Thông tin chung");
 
     setForm({
       name: "",
@@ -105,6 +137,9 @@ export default function Products() {
       classification: "",
       storageLocation: "",
       note: "",
+      origin: "",
+      usageHistory: "",
+      documents: "",
       categoryId:
         selectedCategory === "all" ? 0 : Number(selectedCategory),
     });
@@ -118,6 +153,9 @@ export default function Products() {
 
   function openEdit(row: any) {
     setEditId(row.id);
+    setImageFile(null);
+    setImagePreview(row.image || null);
+    setModalTab("Thông tin chung");
 
     setForm({
       name: row.name,
@@ -125,6 +163,9 @@ export default function Products() {
       classification: row.classification || "",
       storageLocation: row.storageLocation || "",
       note: row.note || "",
+      origin: row.origin || "",
+      usageHistory: row.usageHistory || "",
+      documents: row.documents || "",
       categoryId: row.categoryId,
     });
 
@@ -136,18 +177,24 @@ export default function Products() {
   // =========================
 
   async function remove() {
-    if (!deleteId) return;
+    if (!deleteId || isDeleting) return;
 
+    setIsDeleting(true);
+    const loadingToast = toast.loading("Đang xóa sản phẩm...");
     try {
       await api.delete(`/products/${deleteId}`);
 
+      toast.dismiss(loadingToast);
       toast.success("Xóa thành công");
 
       setDeleteId(null);
 
       load();
     } catch {
+      toast.dismiss(loadingToast);
       toast.error("Không thể xóa sản phẩm");
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -156,19 +203,46 @@ export default function Products() {
   // =========================
 
   async function saveProduct() {
+    if (isSaving) return;
+
+    let loadingToast: string | number | undefined;
+
     try {
       if (!form.categoryId) {
         toast.error("Vui lòng chọn danh mục");
         return;
       }
 
-      if (editId) {
-        await api.patch(`/products/${editId}`, form);
+      const data = new FormData();
+      data.append("name", form.name);
+      data.append("unit", form.unit);
+      data.append("classification", form.classification);
+      data.append("storageLocation", form.storageLocation);
+      data.append("note", form.note);
+      data.append("origin", form.origin);
+      data.append("usageHistory", form.usageHistory);
+      data.append("documents", form.documents);
+      data.append("categoryId", String(form.categoryId));
+      if (imageFile) data.append("image", imageFile);
 
+      setIsSaving(true);
+      loadingToast = toast.loading(
+        editId ? "Đang cập nhật sản phẩm..." : "Đang thêm sản phẩm..."
+      );
+
+      if (editId) {
+        await api.patch(`/products/${editId}`, data, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+
+        toast.dismiss(loadingToast);
         toast.success("Cập nhật thành công");
       } else {
-        await api.post("/products", form);
+        await api.post("/products", data, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
 
+        toast.dismiss(loadingToast);
         toast.success("Thêm thành công");
       }
 
@@ -176,7 +250,10 @@ export default function Products() {
 
       load();
     } catch {
+      if (loadingToast) toast.dismiss(loadingToast);
       toast.error("Có lỗi xảy ra");
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -186,9 +263,24 @@ export default function Products() {
 
   const columns: GridColDef[] = [
     {
-      field: "id",
-      headerName: "ID",
-      width: 80,
+      field: "thumbnail",
+      headerName: "Ảnh",
+      width: 112,
+      sortable: false,
+      filterable: false,
+      renderCell: (params) => (
+        <img
+          src={params.row.image || qbz95}
+          alt={params.row.name || "Ảnh vũ khí"}
+          style={{
+            width: 72,
+            height: 48,
+            objectFit: "cover",
+            borderRadius: 8,
+            border: "1px solid #e2e8f0",
+          }}
+        />
+      ),
     },
 
     {
@@ -394,6 +486,18 @@ export default function Products() {
         </DialogTitle>
 
         <DialogContent>
+          <Tabs
+            value={modalTab}
+            onChange={(_, value) => setModalTab(value)}
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }}
+          >
+            <Tab label="Thông tin chung" value="Thông tin chung" />
+            <Tab label="Lịch sử sử dụng" value="Lịch sử sử dụng" />
+            <Tab label="Tài liệu" value="Tài liệu" />
+          </Tabs>
+
           <Box
             sx={{
               mt: 2,
@@ -401,6 +505,7 @@ export default function Products() {
               gap: 2,
             }}
           >
+            {modalTab === "Thông tin chung" && <>
             <input
               className="border p-2 rounded"
               placeholder="Tên vũ khí"
@@ -467,6 +572,55 @@ export default function Products() {
                 })
               }
             />
+
+            <input
+              className="border p-2 rounded"
+              placeholder="Xuất xứ"
+              value={form.origin}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  origin: e.target.value,
+                })
+              }
+            />
+
+            {imagePreview && (
+              <img
+                src={imagePreview}
+                alt="Ảnh vũ khí hiện tại"
+                style={{ width: 160, height: 160, objectFit: "cover", borderRadius: 8 }}
+              />
+            )}
+
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(event) => {
+                const file = event.target.files?.[0] || null;
+                setImageFile(file);
+                setImagePreview(file ? URL.createObjectURL(file) : imagePreview);
+              }}
+            />
+            </>}
+
+            {modalTab === "Lịch sử sử dụng" && (
+              <textarea
+                className="border p-2 rounded min-h-40"
+                placeholder="Nhập lịch sử sử dụng, bảo quản, sửa chữa..."
+                value={form.usageHistory}
+                onChange={(e) => setForm({ ...form, usageHistory: e.target.value })}
+              />
+            )}
+
+            {modalTab === "Tài liệu" && (
+              <textarea
+                className="border p-2 rounded min-h-40"
+                placeholder="Nhập tên tài liệu hoặc đường dẫn tài liệu, mỗi dòng một mục..."
+                value={form.documents}
+                onChange={(e) => setForm({ ...form, documents: e.target.value })}
+              />
+            )}
           </Box>
         </DialogContent>
 
@@ -478,8 +632,9 @@ export default function Products() {
           <Button
             variant="contained"
             onClick={saveProduct}
+            disabled={isSaving}
           >
-            Lưu
+            {isSaving ? "Đang lưu..." : "Lưu"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -507,8 +662,9 @@ export default function Products() {
             color="error"
             variant="contained"
             onClick={remove}
+            disabled={isDeleting}
           >
-            Xóa
+            {isDeleting ? "Đang xóa..." : "Xóa"}
           </Button>
         </DialogActions>
       </Dialog>

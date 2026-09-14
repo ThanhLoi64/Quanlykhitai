@@ -1,8 +1,14 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateTransferDto {
-  @ApiProperty({ example: 12 })
-  productDetailId!: number;
+  @ApiPropertyOptional({ example: 12 })
+  productDetailId?: number;
+
+  @ApiPropertyOptional({ example: 3 })
+  ammunitionId?: number;
+
+  @ApiPropertyOptional({ example: 100 })
+  quantity?: number;
 
   @ApiProperty({ example: 5 })
   toWarehouseId!: number;

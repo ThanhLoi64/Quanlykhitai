@@ -20,6 +20,7 @@ export class PrismaService
     'warehouse',
     'appLog',
     'transfer',
+    'ammunition',
   ]);
 
   constructor() {

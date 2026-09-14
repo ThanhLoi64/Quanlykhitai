@@ -9,7 +9,10 @@ import {
   ParseIntPipe,
   Req,
   UseGuards,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { RepairService } from './repair.service';
 import { CreateRepairDto } from './dto/create-repair.dto';
@@ -34,8 +37,13 @@ export class RepairController {
   }
 
   @Post()
-  async create(@Req() req: any, @Body() dto: CreateRepairDto) {
-    const created = await this.service.create(dto);
+  @UseInterceptors(FileInterceptor('image'))
+  async create(
+    @Req() req: any,
+    @Body() dto: CreateRepairDto,
+    @UploadedFile() image?: any,
+  ) {
+    const created = await this.service.create(dto, image);
     await this.logService.create(req.user, 'Thêm sự cố sửa chữa', {
       productDetailId: created.productDetailId,
       productName: created.productDetail?.product?.name || null,
@@ -46,12 +54,14 @@ export class RepairController {
   }
 
   @Patch(':id')
+  @UseInterceptors(FileInterceptor('image'))
   async update(
     @Req() req: any,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateRepairDto,
+    @UploadedFile() image?: any,
   ) {
-    const updated = await this.service.update(id, dto);
+    const updated = await this.service.update(id, dto, image);
     await this.logService.create(req.user, 'Cập nhật sửa chữa', {
       id,
       productDetailId: updated.productDetailId,

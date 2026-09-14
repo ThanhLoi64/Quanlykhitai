@@ -76,7 +76,8 @@ status:"AVAILABLE"
 
   // tạo sản phẩm
 
-  create(dto:CreateProductDto){
+  async create(dto:CreateProductDto, image?: any){
+    const uploadedImage = image ? await this.uploadImage(image) : undefined;
 
     return this.prisma.product.create({
 
@@ -96,10 +97,17 @@ status:"AVAILABLE"
 
         note:dto.note,
 
+        origin:dto.origin,
+        usageHistory:dto.usageHistory,
+        documents:dto.documents,
+
+        image: uploadedImage?.url,
+        imageFileId: uploadedImage?.fileId,
+
 
         category:{
           connect:{
-            id:dto.categoryId
+            id:Number(dto.categoryId)
           }
         },
 
@@ -136,9 +144,14 @@ undefined
 
   update(
     id:number,
-    dto:UpdateProductDto
+    dto:UpdateProductDto,
+    image?: any,
   ){
+    return this.updateWithImage(id, dto, image);
+  }
 
+  private async updateWithImage(id: number, dto: UpdateProductDto, image?: any) {
+    const uploadedImage = image ? await this.uploadImage(image) : undefined;
 
     return this.prisma.product.update({
 
@@ -160,6 +173,14 @@ undefined
 
         note:dto.note,
 
+        origin:dto.origin,
+        usageHistory:dto.usageHistory,
+        documents:dto.documents,
+
+        ...(uploadedImage
+          ? { image: uploadedImage.url, imageFileId: uploadedImage.fileId }
+          : {}),
+
 
       },
 
@@ -173,6 +194,31 @@ undefined
     });
 
 
+  }
+
+  private async uploadImage(image: any): Promise<{ url: string; fileId: string }> {
+    const privateKey = process.env.IMAGEKIT_PRIVATE_KEY;
+    if (!privateKey) throw new Error('IMAGEKIT_PRIVATE_KEY chưa được cấu hình');
+
+    const form = new FormData();
+    form.append('file', new Blob([image.buffer], { type: image.mimetype }), image.originalname);
+    form.append('fileName', `${Date.now()}-${image.originalname}`);
+    form.append('folder', '/quan-ly-khi-tai/products');
+
+    const response = await fetch('https://upload.imagekit.io/api/v1/files/upload', {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${privateKey}:`).toString('base64')}`,
+      },
+      body: form,
+    });
+
+    if (!response.ok) {
+      throw new Error(`ImageKit upload failed: ${await response.text()}`);
+    }
+
+    const result = await response.json() as { url: string; fileId: string };
+    return { url: result.url, fileId: result.fileId };
   }
 
 

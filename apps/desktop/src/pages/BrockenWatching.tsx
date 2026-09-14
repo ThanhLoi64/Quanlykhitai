@@ -37,6 +37,8 @@ export default function BrokenWatching() {
   const [repairUnit, setRepairUnit] = useState("");
   const [receivedDate, setReceivedDate] = useState("");
   const [note, setNote] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState("");
 
   const selectedProduct = useMemo(
     () => products.find((item) => String(item.id) === productId),
@@ -85,6 +87,8 @@ export default function BrokenWatching() {
     setRepairUnit("");
     setReceivedDate("");
     setNote("");
+    setImageFile(null);
+    setImagePreview("");
   }
 
   function openCreateModal() {
@@ -107,6 +111,8 @@ export default function BrokenWatching() {
       record.receivedDate ? record.receivedDate.slice(0, 10) : "",
     );
     setNote(record.note || "");
+    setImageFile(null);
+    setImagePreview(record.image || "");
     setOpen(true);
   }
 
@@ -131,25 +137,29 @@ export default function BrokenWatching() {
     }
 
     try {
-      const payload = {
-        productDetailId: Number(productDetailId),
-        damageStatus,
-        cause,
-        repairStartDate: repairStartDate || null,
-        severity,
-        repairUnit,
-        receivedDate: receivedDate || null,
-        note,
-      };
+      const payload = new FormData();
+      payload.append("productDetailId", productDetailId);
+      payload.append("damageStatus", damageStatus);
+      payload.append("cause", cause);
+      payload.append("repairStartDate", repairStartDate);
+      payload.append("severity", severity);
+      payload.append("repairUnit", repairUnit);
+      payload.append("receivedDate", receivedDate);
+      payload.append("note", note);
+      if (imageFile) payload.append("image", imageFile);
 
       let savedRepair: any;
 
       if (editId) {
-        const response = await api.patch(`/repairs/${editId}`, payload);
+        const response = await api.patch(`/repairs/${editId}`, payload, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
         savedRepair = response.data;
         toast.success("Cập nhật thông tin sữa chữa thành công");
       } else {
-        const response = await api.post("/repairs", payload);
+        const response = await api.post("/repairs", payload, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
         savedRepair = response.data;
         toast.success("Thêm hồ sơ sửa chữa thành công");
       }
@@ -399,6 +409,38 @@ export default function BrokenWatching() {
                 },
               }}
             />
+            <Box className="rounded-lg border border-dashed border-slate-300 p-3 md:col-span-2">
+              <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
+                {imagePreview ? (
+                  <img
+                    src={imagePreview}
+                    alt="Ảnh hồ sơ sửa chữa"
+                    className="h-24 w-24 rounded-lg object-cover"
+                  />
+                ) : (
+                  <div className="flex h-24 w-24 items-center justify-center rounded-lg bg-slate-100 text-center text-xs text-slate-400">
+                    Chưa có ảnh
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm font-semibold text-slate-700">Ảnh hồ sơ sửa chữa</p>
+                  <p className="mb-2 text-xs text-slate-500">JPG, PNG hoặc WebP</p>
+                  <Button component="label" variant="outlined" size="small">
+                    Chọn ảnh
+                    <input
+                      hidden
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0] || null;
+                        setImageFile(file);
+                        if (file) setImagePreview(URL.createObjectURL(file));
+                      }}
+                    />
+                  </Button>
+                </div>
+              </div>
+            </Box>
           </Box>
         </DialogContent>
         <DialogActions>
@@ -439,8 +481,15 @@ export default function BrokenWatching() {
 
                   <div className="flex justify-center">
                     <div className="w-full max-w-xs overflow-hidden rounded-xl border bg-slate-50 shadow">
-                      <div className="flex aspect-square items-center justify-center border-2 border-dashed">
-                        <div className="text-center text-slate-400">
+                      {detailRecord?.image ? (
+                        <img
+                          src={detailRecord.image}
+                          alt="Ảnh hồ sơ sửa chữa"
+                          className="aspect-square w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex aspect-square items-center justify-center border-2 border-dashed">
+                          <div className="text-center text-slate-400">
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             className="mx-auto mb-3 h-20 w-20"
@@ -464,8 +513,9 @@ export default function BrokenWatching() {
                           </svg>
 
                           <p>Chưa có ảnh</p>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   </div>
 
