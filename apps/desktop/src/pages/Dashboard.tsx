@@ -1,14 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import api from "../api/api";
-import {
-  Package,
-  FolderOpen,
-  User,
-  Warehouse,
-  Wrench,
-  LogOut,
-  Shield,
-} from "lucide-react";
+import { Package, LogOut, Shield } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import LogComponent from "../components/LogComponent";
 import TransferReceipt from "../components/TransferReceipt";
@@ -36,10 +28,6 @@ function isAmmunition(product: any) {
 
 export default function Dashboard() {
   const [products, setProducts] = useState(0);
-  const [categories, setCategories] = useState(0);
-  const [owners, setOwners] = useState(0);
-  const [inventory, setInventory] = useState(0);
-  const [repairs, setRepairs] = useState(0);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [incomingTransfers, setIncomingTransfers] = useState<any[]>([]);
@@ -118,19 +106,6 @@ export default function Dashboard() {
       setWeaponSummary(Object.values(grouped));
     });
 
-    api.get("/categories").then((res) => {
-      setCategories(res.data.length);
-    });
-
-    api.get("/owners").then((res) => {
-      setOwners(res.data.length);
-    });
-    api.get("/inventory").then((res) => {
-      setInventory(res.data.length);
-    });
-    api.get("/repairs").then((res) => {
-      setRepairs(res.data.length);
-    });
     api.get("/ammunition").then((res) => {
       setAmmunition(res.data);
     }).catch(() => setAmmunition([]));
@@ -191,43 +166,52 @@ export default function Dashboard() {
   const handleClose = () => {
     setAnchorEl(null);
   };
-  const stats = [
-    {
-      title: "Tổng khí tài",
-      value: products,
-      path: "/products",
-      icon: Package,
-      color: "blue",
+
+  const totalAmmunition = useMemo(
+    () =>
+      ammunition.reduce(
+        (sum, item: any) => sum + (Number(item.quantity) || 0),
+        0,
+      ),
+    [ammunition],
+  );
+
+  const stats = useMemo(
+    () => {
+      const palette = ["blue", "green", "indigo", "emerald", "orange"];
+      const categoryCards =
+        weaponSummary.length > 0
+          ? weaponSummary.map((category: any, index: number) => ({
+              title: category.category,
+              value: category.total,
+              path: "/products",
+              icon: Package,
+              color: palette[index % palette.length],
+            }))
+          : [
+              {
+                title: "Tổng khí tài",
+                value: products,
+                path: "/products",
+                icon: Package,
+                color: "blue",
+              },
+            ];
+
+      return [
+        ...categoryCards,
+        {
+          title: "Đạn dược",
+          value: totalAmmunition,
+          path: "/inventory/ammunition",
+          icon: Package,
+          color: "orange",
+        },
+      ];
     },
-    {
-      title: "Danh mục",
-      value: categories,
-      path: "/categories",
-      icon: FolderOpen,
-      color: "green",
-    },
-    {
-      title: "Kho vũ khí",
-      value: inventory,
-      path: "/inventory",
-      icon: Warehouse,
-      color: "emerald",
-    },
-    {
-      title: "Đang sửa chữa",
-      value: repairs,
-      path: "/broken-watching",
-      icon: Wrench,
-      color: "orange",
-    },
-    {
-      title: "Quân nhân",
-      value: owners,
-      path: "/owners",
-      icon: User,
-      color: "indigo",
-    },
-  ];
+    [weaponSummary, products, totalAmmunition],
+  );
+
   const ammunitionByType = Object.values(
     ammunition.reduce((summary: Record<string, { name: string; quantity: number }>, item: any) => {
       const name = item.product?.name || "Chưa xác định";
