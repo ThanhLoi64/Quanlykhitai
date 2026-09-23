@@ -207,7 +207,7 @@ export default function Dashboard() {
       color: "green",
     },
     {
-      title: "Vũ khí trong kho",
+      title: "Kho vũ khí",
       value: inventory,
       path: "/inventory",
       icon: Warehouse,
