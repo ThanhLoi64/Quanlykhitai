@@ -54,8 +54,8 @@ export default function Layout() {
             </div>
             {!collapsed && (
               <div className="min-w-0">
-                <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-300/70">Quản lý hệ thống</p>
-                <h2 className="truncate text-[14px] font-extrabold tracking-[0.12em] text-white">KHÍ TÀI</h2>
+                <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-300/70">Hệ thống quản lý</p>
+                <h2 className="truncate text-[14px] font-extrabold tracking-[0.12em] text-white">KHÍ TÀI - TRANG BỊ</h2>
                 
               </div>
             )}

@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import api from "../api/api";
+import qbz95 from "../assets/img-weapons-qbz95.webp";
 import { Package, LogOut, Shield } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import LogComponent from "../components/LogComponent";
@@ -19,6 +20,7 @@ type ChildProduct = {
   name: string;
   details: unknown[];
   category?: { name?: string } | null;
+  image?: string | null;
 };
 
 function isAmmunition(product: any) {
@@ -98,6 +100,7 @@ export default function Dashboard() {
         grouped[categoryName].products.push({
           name: product.name,
           quantity,
+          image: product.image || null,
         });
 
         grouped[categoryName].total += quantity;
@@ -683,86 +686,7 @@ duration-300
 
         {/* Sản phẩm mới nhất */}
       </div>
-      {childSummary.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border p-6">
-          <h2 className="text-xl font-bold mb-6">Tổng quan vũ khí - khí tài các đơn vị</h2>
-          <div className="flex gap-2 overflow-x-auto border-b border-slate-200">
-            {childSummary.map((child: any) => (
-              <button
-                key={child.tenantId}
-                onClick={() => setSelectedChildTenantId(child.tenantId)}
-                className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${
-                  selectedChildTenantId === child.tenantId
-                    ? "border-blue-600 text-blue-600"
-                    : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700"
-                }`}
-              >
-                {/* {child.tenantName || child.accounts.map((account: any) => account.username).join(", ")} */}
-                 <h3 className="font-bold text-slate-800">{child.accounts.map((account: any) => account.username).join(", ")}</h3>
-              </button>
-            ))}
-          </div>
-          {(() => {
-            const child = childSummary.find((item: any) => item.tenantId === selectedChildTenantId) || childSummary[0];
-
-            if (!child) return null;
-
-            return (
-              <div className="mt-5 rounded-xl border border-slate-200 p-5">
-                {(() => {
-                  const grouped: Record<string, { category: string; total: number; products: { name: string; quantity: number }[] }> = {};
-
-                  child.products.forEach((product: ChildProduct) => {
-                    const categoryName = product.category?.name || "Khác";
-
-                    if (!grouped[categoryName]) {
-                      grouped[categoryName] = { category: categoryName, total: 0, products: [] };
-                    }
-
-                    const quantity = product.details.length;
-                    grouped[categoryName].products.push({ name: product.name, quantity });
-                    grouped[categoryName].total += quantity;
-                  });
-
-                  return (
-                    <>
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h1 className="font-bold text-slate-800 text-2xl">{child.accounts.map((account: any) => account.username).join(", ")}</h1>
-                    {/* <p className="mt-1 text-sm text-slate-500">
-                      {child.accounts.map((account: any) => account.username).join(", ")}
-                    </p> */}
-                  </div>
-                  <span className="text-2xl font-bold text-blue-600">{child.totalWeapons}</span>
-        
-                </div>
-                <p className="mt-3 text-sm text-slate-500">Chi tiết số lượng vũ khí</p>
-                <div className="mt-3 space-y-4">
-                  {Object.values(grouped).map((category) => (
-                    <div key={category.category}>
-                      <div className="mb-2 flex items-center justify-between border-b border-slate-100 pb-2">
-                        <span className="text-sm font-semibold text-slate-700">{category.category}</span>
-                        <span className="text-sm font-bold text-blue-600">{category.total}</span>
-                      </div>
-                      <div className="space-y-2">
-                        {category.products.map((product) => (
-                          <div key={product.name} className="flex justify-between text-sm">
-                            <span className="text-slate-600">{product.name}</span>
-                            <span className="font-semibold text-slate-800">{product.quantity}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                    </>
-                  );
-                })()}
-              </div>          
-            );
-          })()}
-        </div>
-      )}
+     
       <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
         {/* Biểu đồ cột ngang */}
 
@@ -804,7 +728,16 @@ duration-300
                     <tbody className="divide-y divide-slate-100">
                       {selectedCategory.products.map((product: any) => (
                         <tr key={product.name} className="transition-colors hover:bg-slate-50">
-                          <td className="px-4 py-3 text-slate-700">{product.name}</td>
+                          <td className="px-4 py-3 text-slate-700">
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={product.image || qbz95}
+                                alt={product.name || "Ảnh vũ khí"}
+                                className="h-10 w-14 rounded-lg border border-slate-200 object-cover"
+                              />
+                              <span>{product.name}</span>
+                            </div>
+                          </td>
                           <td className="px-4 py-3 text-right font-semibold text-slate-800">
                             {product.quantity}
                           </td>
@@ -878,6 +811,97 @@ duration-300
           </div>
         )}
       </div>
+       {childSummary.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border p-6">
+          <h2 className="text-xl font-bold mb-6">Tổng quan vũ khí - khí tài các đơn vị</h2>
+          <div className="flex gap-2 overflow-x-auto border-b border-slate-200">
+            {childSummary.map((child: any) => (
+              <button
+                key={child.tenantId}
+                onClick={() => setSelectedChildTenantId(child.tenantId)}
+                className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${
+                  selectedChildTenantId === child.tenantId
+                    ? "border-blue-600 text-blue-600"
+                    : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700"
+                }`}
+              >
+                {/* {child.tenantName || child.accounts.map((account: any) => account.username).join(", ")} */}
+                 <h3 className="font-bold text-slate-800">{child.accounts.map((account: any) => account.username).join(", ")}</h3>
+              </button>
+            ))}
+          </div>
+          {(() => {
+            const child = childSummary.find((item: any) => item.tenantId === selectedChildTenantId) || childSummary[0];
+
+            if (!child) return null;
+
+            return (
+              <div className="mt-5 rounded-xl border border-slate-200 p-5">
+                {(() => {
+                  const grouped: Record<string, { category: string; total: number; products: { name: string; quantity: number; image?: string | null }[] }> = {};
+
+                  child.products.forEach((product: ChildProduct) => {
+                    const categoryName = product.category?.name || "Khác";
+
+                    if (!grouped[categoryName]) {
+                      grouped[categoryName] = { category: categoryName, total: 0, products: [] };
+                    }
+
+                    const quantity = product.details.length;
+                    grouped[categoryName].products.push({
+                      name: product.name,
+                      quantity,
+                      image: product.image || null,
+                    });
+                    grouped[categoryName].total += quantity;
+                  });
+
+                  return (
+                    <>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h1 className="font-bold text-slate-800 text-2xl">{child.accounts.map((account: any) => account.username).join(", ")}</h1>
+                    {/* <p className="mt-1 text-sm text-slate-500">
+                      {child.accounts.map((account: any) => account.username).join(", ")}
+                    </p> */}
+                  </div>
+                  <span className="text-2xl font-bold text-blue-600">{child.totalWeapons}</span>
+        
+                </div>
+                <p className="mt-3 text-sm text-slate-500">Chi tiết số lượng vũ khí</p>
+                <div className="mt-3 space-y-4">
+                  {Object.values(grouped).map((category) => (
+                    <div key={category.category}>
+                      <div className="mb-2 flex items-center justify-between border-b border-slate-100 pb-2">
+                        <span className="text-sm font-semibold text-slate-700">{category.category}</span>
+                        <span className="text-sm font-bold text-blue-600">{category.total}</span>
+                      </div>
+                      <div className="space-y-2">
+                        {category.products.map((product) => (
+                          <div key={product.name} className="flex items-center justify-between gap-3 text-sm">
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={product.image || qbz95}
+                                alt={product.name || "Ảnh vũ khí"}
+                                className="h-8 w-12 rounded border border-slate-200 object-cover"
+                              />
+                              <span className="text-slate-600">{product.name}</span>
+                            </div>
+                            <span className="font-semibold text-slate-800">{product.quantity}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                    </>
+                  );
+                })()}
+              </div>          
+            );
+          })()}
+        </div>
+      )}
       <div className="bg-white rounded-xl shadow-sm border p-6">
         <LogComponent />
       </div>
