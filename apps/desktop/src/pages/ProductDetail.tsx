@@ -182,7 +182,7 @@ export default function ProductDetail() {
       {/* TAB */}
 
       <div className="flex border-b overflow-x-auto">
-        {["Thông tin", "Biên chế", "Lịch sử", "Tài liệu"].map(
+        {["Thông tin", "Danh sách Biên chế", "Lịch sử", "Tài liệu"].map(
           (tab) => (
             <button
               key={tab}
@@ -250,7 +250,7 @@ gap-4
 
         {/* TAB Biên chế */}
 
-        {activeTab === "Biên chế" && (
+        {activeTab === "Danh sách Biên chế" && (
           <div>
             <h2 className="text-xl font-bold mb-5">Danh sách Biên chế</h2>
 

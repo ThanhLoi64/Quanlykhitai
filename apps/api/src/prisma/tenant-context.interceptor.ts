@@ -14,6 +14,10 @@ export class TenantContextInterceptor implements NestInterceptor {
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest();
+    if (request.route?.path === '/health') {
+      return next.handle();
+    }
+
     const tenantId = request.user?.tenantId;
 
     if (!tenantId && request.route?.path !== '/auth/login') {

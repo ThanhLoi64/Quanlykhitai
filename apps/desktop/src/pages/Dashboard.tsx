@@ -24,7 +24,8 @@ type ChildProduct = {
 };
 
 function isAmmunition(product: any) {
-  const text = `${product.name || ""} ${product.category?.name || ""}`.toLowerCase();
+  const text =
+    `${product.name || ""} ${product.category?.name || ""}`.toLowerCase();
   return /đạn|dan duoc|ammunition/.test(text);
 }
 
@@ -38,9 +39,13 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [userAnchor, setUserAnchor] = useState<null | HTMLElement>(null);
   const [weaponSummary, setWeaponSummary] = useState<any[]>([]);
-  const [selectedWeaponCategory, setSelectedWeaponCategory] = useState<string | null>(null);
+  const [selectedWeaponCategory, setSelectedWeaponCategory] = useState<
+    string | null
+  >(null);
   const [childSummary, setChildSummary] = useState<any[]>([]);
-  const [selectedChildTenantId, setSelectedChildTenantId] = useState<number | null>(null);
+  const [selectedChildTenantId, setSelectedChildTenantId] = useState<
+    number | null
+  >(null);
   const [receiptTransfer, setReceiptTransfer] = useState<any | null>(null);
   const [ammunition, setAmmunition] = useState<any[]>([]);
 
@@ -71,10 +76,15 @@ export default function Dashboard() {
     navigate("/");
   };
   useEffect(() => {
-    api.get("/auth/child-weapon-summary").then((res) => {
-      setChildSummary(res.data);
-      setSelectedChildTenantId((current) => current ?? res.data[0]?.tenantId ?? null);
-    }).catch(() => setChildSummary([]));
+    api
+      .get("/auth/child-weapon-summary")
+      .then((res) => {
+        setChildSummary(res.data);
+        setSelectedChildTenantId(
+          (current) => current ?? res.data[0]?.tenantId ?? null,
+        );
+      })
+      .catch(() => setChildSummary([]));
 
     api.get("/products").then((res) => {
       const data = res.data;
@@ -109,9 +119,12 @@ export default function Dashboard() {
       setWeaponSummary(Object.values(grouped));
     });
 
-    api.get("/ammunition").then((res) => {
-      setAmmunition(res.data);
-    }).catch(() => setAmmunition([]));
+    api
+      .get("/ammunition")
+      .then((res) => {
+        setAmmunition(res.data);
+      })
+      .catch(() => setAmmunition([]));
   }, []);
 
   useEffect(() => {
@@ -142,7 +155,8 @@ export default function Dashboard() {
         ...transfersRes.data.map((transfer: any) => `transfer-${transfer.id}`),
       ];
       setUnreadCount(
-        notificationIds.filter((id) => !viewedNotificationIds.current.has(id)).length,
+        notificationIds.filter((id) => !viewedNotificationIds.current.has(id))
+          .length,
       );
       return { latest, transfers: transfersRes.data };
     } catch {}
@@ -161,8 +175,12 @@ export default function Dashboard() {
   const handleOpen = async (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
     const loaded = await loadNotifications();
-    loaded?.latest.forEach((log: any) => viewedNotificationIds.current.add(`log-${log.id}`));
-    loaded?.transfers.forEach((transfer: any) => viewedNotificationIds.current.add(`transfer-${transfer.id}`));
+    loaded?.latest.forEach((log: any) =>
+      viewedNotificationIds.current.add(`log-${log.id}`),
+    );
+    loaded?.transfers.forEach((transfer: any) =>
+      viewedNotificationIds.current.add(`transfer-${transfer.id}`),
+    );
     setUnreadCount(0);
   };
 
@@ -179,51 +197,80 @@ export default function Dashboard() {
     [ammunition],
   );
 
-  const stats = useMemo(
-    () => {
-      const palette = ["blue", "green", "indigo", "emerald", "orange"];
-      const categoryCards =
-        weaponSummary.length > 0
-          ? weaponSummary.map((category: any, index: number) => ({
-              title: category.category,
-              value: category.total,
+  const stats = useMemo(() => {
+    const palette = ["blue", "green", "indigo", "emerald", "orange"];
+    const categoryCards =
+      weaponSummary.length > 0
+        ? weaponSummary.map((category: any, index: number) => ({
+            title: category.category,
+            value: category.total,
+            path: "/products",
+            icon: Package,
+            color: palette[index % palette.length],
+          }))
+        : [
+            {
+              title: "Tổng khí tài",
+              value: products,
               path: "/products",
               icon: Package,
-              color: palette[index % palette.length],
-            }))
-          : [
-              {
-                title: "Tổng khí tài",
-                value: products,
-                path: "/products",
-                icon: Package,
-                color: "blue",
-              },
-            ];
+              color: "blue",
+            },
+          ];
 
-      return [
-        ...categoryCards,
-        {
-          title: "Đạn dược",
-          value: totalAmmunition,
-          path: "/inventory/ammunition",
-          icon: Package,
-          color: "orange",
-        },
-      ];
-    },
-    [weaponSummary, products, totalAmmunition],
-  );
+    const ammunitionCard = {
+      title: "Đạn dược",
+      value: totalAmmunition,
+      path: "/inventory/ammunition",
+      icon: Package,
+      color: "orange",
+    };
+    const categoryOrder = ["vũ khí", "trang bị", "khí tài", "quân cụ"];
+    const orderedCategories = [...categoryCards].sort((left, right) => {
+      const leftIndex = categoryOrder.indexOf(left.title.trim().toLocaleLowerCase("vi"));
+      const rightIndex = categoryOrder.indexOf(right.title.trim().toLocaleLowerCase("vi"));
+      return (leftIndex < 0 ? categoryOrder.length : leftIndex) -
+        (rightIndex < 0 ? categoryOrder.length : rightIndex);
+    });
+
+    return [
+      ...orderedCategories.filter((category) =>
+        ["vũ khí", "trang bị", "khí tài"].includes(
+          category.title.trim().toLocaleLowerCase("vi"),
+        ),
+      ),
+      ammunitionCard,
+      ...orderedCategories.filter(
+        (category) =>
+          !["vũ khí", "trang bị", "khí tài"].includes(
+            category.title.trim().toLocaleLowerCase("vi"),
+          ),
+      ),
+    ];
+  }, [weaponSummary, products, totalAmmunition]);
 
   const ammunitionByType = Object.values(
-    ammunition.reduce((summary: Record<string, { name: string; quantity: number }>, item: any) => {
-      const name = item.product?.name || "Chưa xác định";
-      summary[name] ||= { name, quantity: 0 };
-      summary[name].quantity += Number(item.quantity) || 0;
-      return summary;
-    }, {}),
+    ammunition.reduce(
+      (
+        summary: Record<string, { name: string; quantity: number }>,
+        item: any,
+      ) => {
+        const name = item.product?.name || "Chưa xác định";
+        summary[name] ||= { name, quantity: 0 };
+        summary[name].quantity += Number(item.quantity) || 0;
+        return summary;
+      },
+      {},
+    ),
   );
-  const ammunitionColors = ["#2563eb", "#16a34a", "#f97316", "#dc2626", "#7c3aed", "#0891b2"];
+  const ammunitionColors = [
+    "#2563eb",
+    "#16a34a",
+    "#f97316",
+    "#dc2626",
+    "#7c3aed",
+    "#0891b2",
+  ];
   return (
     <div className="space-y-8 pt-2">
       {/* Header */}
@@ -238,11 +285,7 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="flex items-center justify-center mb-8">
-          <Badge
-            badgeContent={unreadCount}
-            color="error"
-            overlap="circular"
-          >
+          <Badge badgeContent={unreadCount} color="error" overlap="circular">
             <IconButton
               onClick={handleOpen}
               className="bg-white shadow-sm border hover:bg-slate-50"
@@ -290,7 +333,8 @@ export default function Dashboard() {
                         Yêu cầu xuất kho
                       </div>
                       <div className="text-sm text-slate-600 mt-1">
-                        {transfer.fromUsername || "Tài khoản khác"} muốn xuất {transfer.product?.name || "-"}
+                        {transfer.fromUsername || "Tài khoản khác"} muốn xuất{" "}
+                        {transfer.product?.name || "-"}
                         đến tài khoản {transfer.toUsername || "-"}
                       </div>
                       <div className="text-xs text-slate-400 mt-1">
@@ -557,20 +601,18 @@ font-semibold
           const Icon = item.icon;
 
           const colorMap: any = {
-            blue: {
-              bg: "bg-blue-100",
-              icon: "text-blue-600",
-              number: "text-blue-600",
-              line: "bg-blue-500",
-            },
-
             green: {
               bg: "bg-green-100",
               icon: "text-green-600",
               number: "text-green-600",
               line: "bg-green-500",
             },
-
+            blue: {
+              bg: "bg-blue-100",
+              icon: "text-blue-600",
+              number: "text-blue-600",
+              line: "bg-blue-500",
+            },
             indigo: {
               bg: "bg-indigo-100",
               icon: "text-indigo-600",
@@ -686,81 +728,99 @@ duration-300
 
         {/* Sản phẩm mới nhất */}
       </div>
-     
+
       <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
         {/* Biểu đồ cột ngang */}
 
         <div className="bg-white rounded-xl shadow-sm border p-6">
-          <h2 className="text-xl font-bold mb-6">Chi tiết số lượng vũ khí hiện tại</h2>
+          <h2 className="text-xl font-bold mb-6">
+            Chi tiết số lượng vũ khí hiện tại
+          </h2>
 
-          {weaponSummary.length > 0 && (() => {
-            const selectedCategory = weaponSummary.find(
-              (category: any) => category.category === selectedWeaponCategory,
-            ) || weaponSummary[0];
+          {weaponSummary.length > 0 &&
+            (() => {
+              const selectedCategory =
+                weaponSummary.find(
+                  (category: any) =>
+                    category.category === selectedWeaponCategory,
+                ) || weaponSummary[0];
 
-            return (
-              <>
-                <div className="flex gap-2 overflow-x-auto border-b border-slate-200">
-                  {weaponSummary.map((category: any) => (
-                    <button
-                      key={category.category}
-                      type="button"
-                      onClick={() => setSelectedWeaponCategory(category.category)}
-                      className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${
-                        selectedCategory.category === category.category
-                          ? "border-blue-600 text-blue-600"
-                          : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700"
-                      }`}
-                    >
-                      {category.category}
-                    </button>
-                  ))}
-                </div>
+              return (
+                <>
+                  <div className="flex gap-2 overflow-x-auto border-b border-slate-200">
+                    {weaponSummary.map((category: any) => (
+                      <button
+                        key={category.category}
+                        type="button"
+                        onClick={() =>
+                          setSelectedWeaponCategory(category.category)
+                        }
+                        className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${
+                          selectedCategory.category === category.category
+                            ? "border-blue-600 text-blue-600"
+                            : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700"
+                        }`}
+                      >
+                        {category.category}
+                      </button>
+                    ))}
+                  </div>
 
-                <div className="mt-5 overflow-x-auto rounded-xl border border-slate-200">
-                  <table className="w-full min-w-105 text-left text-sm">
-                    <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                      <tr>
-                        <th className="px-4 py-3 font-semibold">Tên khí tài</th>
-                        <th className="w-36 px-4 py-3 text-right font-semibold">Số lượng</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {selectedCategory.products.map((product: any) => (
-                        <tr key={product.name} className="transition-colors hover:bg-slate-50">
-                          <td className="px-4 py-3 text-slate-700">
-                            <div className="flex items-center gap-3">
-                              <img
-                                src={product.image || qbz95}
-                                alt={product.name || "Ảnh vũ khí"}
-                                className="h-10 w-14 rounded-lg border border-slate-200 object-cover"
-                              />
-                              <span>{product.name}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-right font-semibold text-slate-800">
-                            {product.quantity}
-                          </td>
+                  <div className="mt-5 overflow-x-auto rounded-xl border border-slate-200">
+                    <table className="w-full min-w-105 text-left text-sm">
+                      <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                        <tr>
+                          <th className="px-4 py-3 font-semibold">
+                            Tên khí tài
+                          </th>
+                          <th className="w-36 px-4 py-3 text-right font-semibold">
+                            Số lượng
+                          </th>
                         </tr>
-                      ))}
-                    </tbody>
-                    <tfoot className="border-t-2 border-slate-200 bg-blue-50/50">
-                      <tr>
-                        <th className="px-4 py-3 font-bold text-slate-700">Tổng số</th>
-                        <th className="px-4 py-3 text-right text-base font-bold text-blue-600">
-                          {selectedCategory.total}
-                        </th>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              </>
-            );
-          })()}
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {selectedCategory.products.map((product: any) => (
+                          <tr
+                            key={product.name}
+                            className="transition-colors hover:bg-slate-50"
+                          >
+                            <td className="px-4 py-3 text-slate-700">
+                              <div className="flex items-center gap-3">
+                                <img
+                                  src={product.image || qbz95}
+                                  alt={product.name || "Ảnh vũ khí"}
+                                  className="h-10 w-14 rounded-lg border border-slate-200 object-cover"
+                                />
+                                <span>{product.name}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-right font-semibold text-slate-800">
+                              {product.quantity}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot className="border-t-2 border-slate-200 bg-blue-50/50">
+                        <tr>
+                          <th className="px-4 py-3 font-bold text-slate-700">
+                            Tổng số
+                          </th>
+                          <th className="px-4 py-3 text-right text-base font-bold text-blue-600">
+                            {selectedCategory.total}
+                          </th>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </>
+              );
+            })()}
         </div>
       </div>
       <div className="rounded-xl border bg-white p-6 shadow-sm">
-        <h2 className="mb-6 text-xl font-bold text-slate-800">Thống kê đạn dược</h2>
+        <h2 className="mb-6 text-xl font-bold text-slate-800">
+          Thống kê đạn dược
+        </h2>
         {ammunition.length === 0 ? (
           <p className="text-slate-500">Chưa có dữ liệu đạn dược.</p>
         ) : (
@@ -775,13 +835,20 @@ duration-300
                     cx="50%"
                     cy="48%"
                     outerRadius={105}
-                    label={({ name, percent }) => `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`}
+                    label={({ name, percent }) =>
+                      `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
+                    }
                   >
                     {ammunitionByType.map((item: any, index: number) => (
-                      <Cell key={item.name} fill={ammunitionColors[index % ammunitionColors.length]} />
+                      <Cell
+                        key={item.name}
+                        fill={ammunitionColors[index % ammunitionColors.length]}
+                      />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => [`${value} viên`, "Số lượng"]} />
+                  <Tooltip
+                    formatter={(value) => [`${value} viên`, "Số lượng"]}
+                  />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
@@ -792,17 +859,29 @@ duration-300
                   <tr>
                     <th className="px-4 py-3 font-semibold">Loại đạn</th>
                     <th className="px-4 py-3 font-semibold">Lô</th>
-                    <th className="px-4 py-3 text-right font-semibold">Số lượng</th>
-                    <th className="px-4 py-3 text-right font-semibold">Năm SX</th>
+                    <th className="px-4 py-3 text-right font-semibold">
+                      Số lượng
+                    </th>
+                    <th className="px-4 py-3 text-right font-semibold">
+                      Năm SX
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {ammunition.map((item: any) => (
                     <tr key={item.id} className="hover:bg-slate-50">
-                      <td className="px-4 py-3 font-medium text-slate-700">{item.product?.name || "-"}</td>
-                      <td className="px-4 py-3 text-slate-600">{item.batch || "-"}</td>
-                      <td className="px-4 py-3 text-right font-semibold text-slate-800">{item.quantity} {item.unit || "viên"}</td>
-                      <td className="px-4 py-3 text-right text-slate-600">{item.productionYear || "-"}</td>
+                      <td className="px-4 py-3 font-medium text-slate-700">
+                        {item.product?.name || "-"}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {item.batch || "-"}
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold text-slate-800">
+                        {item.quantity} {item.unit || "viên"}
+                      </td>
+                      <td className="px-4 py-3 text-right text-slate-600">
+                        {item.productionYear || "-"}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -811,9 +890,11 @@ duration-300
           </div>
         )}
       </div>
-       {childSummary.length > 0 && (
+      {childSummary.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm border p-6">
-          <h2 className="text-xl font-bold mb-6">Tổng quan vũ khí - khí tài các đơn vị</h2>
+          <h2 className="text-xl font-bold mb-6">
+            Tổng quan vũ khí - khí tài các đơn vị
+          </h2>
           <div className="flex gap-2 overflow-x-auto border-b border-slate-200">
             {childSummary.map((child: any) => (
               <button
@@ -826,25 +907,47 @@ duration-300
                 }`}
               >
                 {/* {child.tenantName || child.accounts.map((account: any) => account.username).join(", ")} */}
-                 <h3 className="font-bold text-slate-800">{child.accounts.map((account: any) => account.username).join(", ")}</h3>
+                <h3 className="font-bold text-slate-800">
+                  {child.accounts
+                    .map((account: any) => account.username)
+                    .join(", ")}
+                </h3>
               </button>
             ))}
           </div>
           {(() => {
-            const child = childSummary.find((item: any) => item.tenantId === selectedChildTenantId) || childSummary[0];
+            const child =
+              childSummary.find(
+                (item: any) => item.tenantId === selectedChildTenantId,
+              ) || childSummary[0];
 
             if (!child) return null;
 
             return (
               <div className="mt-5 rounded-xl border border-slate-200 p-5">
                 {(() => {
-                  const grouped: Record<string, { category: string; total: number; products: { name: string; quantity: number; image?: string | null }[] }> = {};
+                  const grouped: Record<
+                    string,
+                    {
+                      category: string;
+                      total: number;
+                      products: {
+                        name: string;
+                        quantity: number;
+                        image?: string | null;
+                      }[];
+                    }
+                  > = {};
 
                   child.products.forEach((product: ChildProduct) => {
                     const categoryName = product.category?.name || "Khác";
 
                     if (!grouped[categoryName]) {
-                      grouped[categoryName] = { category: categoryName, total: 0, products: [] };
+                      grouped[categoryName] = {
+                        category: categoryName,
+                        total: 0,
+                        products: [],
+                      };
                     }
 
                     const quantity = product.details.length;
@@ -858,46 +961,64 @@ duration-300
 
                   return (
                     <>
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h1 className="font-bold text-slate-800 text-2xl">{child.accounts.map((account: any) => account.username).join(", ")}</h1>
-                    {/* <p className="mt-1 text-sm text-slate-500">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <h1 className="font-bold text-slate-800 text-2xl">
+                            {child.accounts
+                              .map((account: any) => account.username)
+                              .join(", ")}
+                          </h1>
+                          {/* <p className="mt-1 text-sm text-slate-500">
                       {child.accounts.map((account: any) => account.username).join(", ")}
                     </p> */}
-                  </div>
-                  <span className="text-2xl font-bold text-blue-600">{child.totalWeapons}</span>
-        
-                </div>
-                <p className="mt-3 text-sm text-slate-500">Chi tiết số lượng vũ khí</p>
-                <div className="mt-3 space-y-4">
-                  {Object.values(grouped).map((category) => (
-                    <div key={category.category}>
-                      <div className="mb-2 flex items-center justify-between border-b border-slate-100 pb-2">
-                        <span className="text-sm font-semibold text-slate-700">{category.category}</span>
-                        <span className="text-sm font-bold text-blue-600">{category.total}</span>
+                        </div>
+                        <span className="text-2xl font-bold text-blue-600">
+                          {child.totalWeapons}
+                        </span>
                       </div>
-                      <div className="space-y-2">
-                        {category.products.map((product) => (
-                          <div key={product.name} className="flex items-center justify-between gap-3 text-sm">
-                            <div className="flex items-center gap-3">
-                              <img
-                                src={product.image || qbz95}
-                                alt={product.name || "Ảnh vũ khí"}
-                                className="h-8 w-12 rounded border border-slate-200 object-cover"
-                              />
-                              <span className="text-slate-600">{product.name}</span>
+                      <p className="mt-3 text-sm text-slate-500">
+                        Chi tiết số lượng vũ khí
+                      </p>
+                      <div className="mt-3 space-y-4">
+                        {Object.values(grouped).map((category) => (
+                          <div key={category.category}>
+                            <div className="mb-2 flex items-center justify-between border-b border-slate-100 pb-2">
+                              <span className="text-sm font-semibold text-slate-700">
+                                {category.category}
+                              </span>
+                              <span className="text-sm font-bold text-blue-600">
+                                {category.total}
+                              </span>
                             </div>
-                            <span className="font-semibold text-slate-800">{product.quantity}</span>
+                            <div className="space-y-2">
+                              {category.products.map((product) => (
+                                <div
+                                  key={product.name}
+                                  className="flex items-center justify-between gap-3 text-sm"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <img
+                                      src={product.image || qbz95}
+                                      alt={product.name || "Ảnh vũ khí"}
+                                      className="h-8 w-12 rounded border border-slate-200 object-cover"
+                                    />
+                                    <span className="text-slate-600">
+                                      {product.name}
+                                    </span>
+                                  </div>
+                                  <span className="font-semibold text-slate-800">
+                                    {product.quantity}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         ))}
                       </div>
-                    </div>
-                  ))}
-                </div>
                     </>
                   );
                 })()}
-              </div>          
+              </div>
             );
           })()}
         </div>

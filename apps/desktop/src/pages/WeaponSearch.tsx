@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import api from "../api/api";
 import { Box, Chip } from "@mui/material";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
+import { useSearchParams } from "react-router-dom";
 
 function statusLabel(status?: string) {
   if (status === "IN_STOCK") return "Trong kho";
@@ -13,8 +14,11 @@ function statusLabel(status?: string) {
 }
 
 export default function WeaponSearch() {
-  const [query, setQuery] = useState("");
-  const [searchField, setSearchField] = useState("product");
+  const [searchParams] = useSearchParams();
+  const [query, setQuery] = useState(() => searchParams.get("q") || "");
+  const [searchField, setSearchField] = useState(
+    () => searchParams.get("field") || "product",
+  );
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -31,6 +35,11 @@ export default function WeaponSearch() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    setQuery(searchParams.get("q") || "");
+    setSearchField(searchParams.get("field") || "product");
+  }, [searchParams]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => search(), 300);

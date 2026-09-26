@@ -30,6 +30,17 @@ function isAmmunition(product: any) {
   return /đạn|dan duoc|ammunition/.test(text);
 }
 
+const categoryOrder = ["vũ khí", "trang bị", "khí tài", "đạn dược", "quân cụ"];
+
+function sortCategories(items: any[]) {
+  return [...items].sort((left, right) => {
+    const leftIndex = categoryOrder.indexOf(left.name.trim().toLocaleLowerCase("vi"));
+    const rightIndex = categoryOrder.indexOf(right.name.trim().toLocaleLowerCase("vi"));
+    return (leftIndex < 0 ? categoryOrder.length : leftIndex) -
+      (rightIndex < 0 ? categoryOrder.length : rightIndex);
+  });
+}
+
 export default function Products() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -45,9 +56,7 @@ export default function Products() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Tab đang được chọn
-  const [selectedCategory, setSelectedCategory] = useState<number | "all">(
-    "all"
-  );
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
 
   const navigate = useNavigate();
 
@@ -90,17 +99,13 @@ export default function Products() {
             : product,
         ),
       );
-      setCategories(categoryRes.data);
-
-      // Nếu tab hiện tại không còn tồn tại thì về Tất cả
-      if (
-        selectedCategory !== "all" &&
-        !categoryRes.data.some(
-          (category: any) => category.id === selectedCategory
-        )
-      ) {
-        setSelectedCategory("all");
-      }
+      const orderedCategories = sortCategories(categoryRes.data);
+      setCategories(orderedCategories);
+      setSelectedCategory((current) =>
+        orderedCategories.some((category: any) => category.id === current)
+          ? current
+          : orderedCategories[0]?.id ?? null,
+      );
     } catch (error) {
       toast.error("Không thể tải dữ liệu");
     }
@@ -114,12 +119,9 @@ export default function Products() {
   // FILTER PRODUCTS
   // =========================
 
-  const filteredProducts =
-    selectedCategory === "all"
-      ? products
-      : products.filter(
-          (product) => product.categoryId === selectedCategory
-        );
+  const filteredProducts = products.filter(
+    (product) => product.categoryId === selectedCategory,
+  );
 
   // =========================
   // CREATE
@@ -141,7 +143,7 @@ export default function Products() {
       usageHistory: "",
       documents: "",
       categoryId:
-        selectedCategory === "all" ? 0 : Number(selectedCategory),
+        selectedCategory ?? 0,
     });
 
     setOpenModal(true);
@@ -249,9 +251,12 @@ export default function Products() {
       setOpenModal(false);
 
       load();
-    } catch {
+    } catch (error: any) {
       if (loadingToast) toast.dismiss(loadingToast);
-      toast.error("Có lỗi xảy ra");
+      const message = error.response?.data?.message;
+      toast.error(
+        Array.isArray(message) ? message.join("; ") : message || "Có lỗi xảy ra",
+      );
     } finally {
       setIsSaving(false);
     }
@@ -420,12 +425,6 @@ export default function Products() {
             variant="scrollable"
             scrollButtons="auto"
           >
-            {/* TẤT CẢ */}
-            <Tab
-              label={`Tất cả (${products.length})`}
-              value="all"
-            />
-
             {/* CÁC DANH MỤC */}
             {categories.map((category) => {
               const count = products.filter(

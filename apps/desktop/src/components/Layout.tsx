@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   Home,
   Shield,
@@ -16,12 +16,79 @@ import {
   Search,
   ShieldCheck,
 } from "lucide-react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import api from "../api/api";
+
+type ConnectionState = "checking" | "online" | "slow" | "offline" | "server-unreachable";
 
 export default function Layout() {
   const [collapsed, setCollapsed] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [connectionState, setConnectionState] = useState<ConnectionState>("checking");
+  const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const canManageChildren = ["SYSADMIN", "ADMIN", "STAFF"].includes(user?.role);
+
+  const handleSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const query = searchQuery.trim();
+    if (!query) return;
+    navigate(`/weapon-search?field=product&q=${encodeURIComponent(query)}`);
+  };
+
+  useEffect(() => {
+    let active = true;
+    let checking = false;
+
+    const checkConnection = async () => {
+      if (!navigator.onLine) {
+        setConnectionState("offline");
+        return;
+      }
+      if (checking) return;
+
+      checking = true;
+      const startedAt = performance.now();
+      try {
+        await api.get("/health", { timeout: 8000 });
+        if (active) {
+          setConnectionState(performance.now() - startedAt > 2500 ? "slow" : "online");
+        }
+      } catch {
+        if (active) {
+          setConnectionState(navigator.onLine ? "server-unreachable" : "offline");
+        }
+      } finally {
+        checking = false;
+      }
+    };
+
+    const handleOffline = () => setConnectionState("offline");
+    const handleOnline = () => {
+      setConnectionState("checking");
+      void checkConnection();
+    };
+
+    void checkConnection();
+    const intervalId = window.setInterval(checkConnection, 15000);
+    window.addEventListener("offline", handleOffline);
+    window.addEventListener("online", handleOnline);
+
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("online", handleOnline);
+    };
+  }, []);
+
+  const connectionStatus = {
+    checking: { label: "Đang kiểm tra kết nối", color: "text-amber-300", dot: "bg-amber-300 animate-pulse", background: "bg-amber-400/[0.08]" },
+    online: { label: "Hệ thống đang hoạt động", color: "text-emerald-300", dot: "bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.9)]", background: "bg-emerald-400/[0.08]" },
+    slow: { label: "Mạng yếu, phản hồi chậm", color: "text-amber-300", dot: "bg-amber-300", background: "bg-amber-400/[0.08]" },
+    offline: { label: "Mất kết nối mạng", color: "text-rose-300", dot: "bg-rose-400", background: "bg-rose-400/[0.08]" },
+    "server-unreachable": { label: "Không kết nối được máy chủ", color: "text-rose-300", dot: "bg-rose-400", background: "bg-rose-400/[0.08]" },
+  }[connectionState];
 
   const menuClass = ({ isActive }: { isActive: boolean }) => `
   group relative flex items-center ${collapsed ? "justify-center" : "gap-3"}
@@ -82,9 +149,32 @@ export default function Layout() {
         )}
 
         {!collapsed && (
-          <div className="mx-2 mt-5 flex items-center gap-2 rounded-lg bg-emerald-400/[0.08] px-3 py-2 text-[11px] font-semibold text-emerald-300">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.9)]" />
-            Hệ thống đang hoạt động
+          <div className="mx-2 mt-5 space-y-2"> 
+            <form onSubmit={handleSearch} className="flex gap-1.5">
+              <div className="flex min-w-0 flex-1 items-center rounded-lg border border-white/[0.08] bg-white/[0.04] px-2.5 focus-within:border-cyan-300/50">
+                <Search size={15} className="shrink-0 text-slate-500" />
+                <input
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Tìm khí tài..."
+                  aria-label="Tìm kiếm khí tài"
+                  className="min-w-0 flex-1 bg-transparent px-2 py-2 text-xs text-white outline-none placeholder:text-slate-500"
+                />
+              </div>
+              <button
+                type="submit"
+                title="Tìm kiếm"
+                aria-label="Tìm kiếm"
+                disabled={!searchQuery.trim()}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-300 text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Search size={16} />
+              </button>
+            </form>
+             <div role="status" aria-live="polite" className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-semibold ${connectionStatus.background} ${connectionStatus.color}`}>
+              <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${connectionStatus.dot}`} />
+              {connectionStatus.label}
+            </div>
           </div>
         )}
         <nav
@@ -111,10 +201,7 @@ export default function Layout() {
             {!collapsed && <span>Tra cứu khí tài</span>}
           </NavLink>
 
-          <NavLink to="/categories" className={menuClass}>
-            <Tags size={20} />
-            {!collapsed && <span>Danh mục</span>}
-          </NavLink>
+         
           <NavLink to="/products" className={menuClass}>
             <Shield size={20} />
             {!collapsed && <span>Thống kê vũ khí</span>}
@@ -167,6 +254,10 @@ export default function Layout() {
           <NavLink to="/owners" className={menuClass}>
             <Users size={20} />
             {!collapsed && <span>Danh sách Quân nhân</span>}
+          </NavLink>
+           <NavLink to="/categories" className={menuClass}>
+            <Tags size={20} />
+            {!collapsed && <span>Thêm Danh mục</span>}
           </NavLink>
           <NavLink to="/logs" className={menuClass}>
             <Activity size={20} />
