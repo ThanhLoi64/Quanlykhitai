@@ -239,10 +239,7 @@ export default function Layout() {
               </div>
             )}
           </div>
-          <NavLink to="/registrations" className={menuClass}>
-            <ClipboardList size={30} />
-            {!collapsed && <span>Biên chế cá nhân</span>}
-          </NavLink>
+         
           <NavLink to="/warehouses" className={menuClass}>
             <ListCheck size={20} />
             {!collapsed && <span>Danh sách kho</span>}
@@ -258,6 +255,10 @@ export default function Layout() {
            <NavLink to="/categories" className={menuClass}>
             <Tags size={20} />
             {!collapsed && <span>Thêm Danh mục</span>}
+          </NavLink>
+           <NavLink to="/registrations" className={menuClass}>
+            <ClipboardList size={30} />
+            {!collapsed && <span>Biên chế cá nhân</span>}
           </NavLink>
           <NavLink to="/logs" className={menuClass}>
             <Activity size={20} />

@@ -7,14 +7,6 @@ import LogComponent from "../components/LogComponent";
 import TransferReceipt from "../components/TransferReceipt";
 import { Bell } from "lucide-react";
 import { Menu, MenuItem, Badge, IconButton } from "@mui/material";
-import {
-  Cell,
-  Legend,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
 
 type ChildProduct = {
   name: string;
@@ -48,6 +40,9 @@ export default function Dashboard() {
   >(null);
   const [receiptTransfer, setReceiptTransfer] = useState<any | null>(null);
   const [ammunition, setAmmunition] = useState<any[]>([]);
+  const [selectedAmmunitionType, setSelectedAmmunitionType] = useState<
+    string | null
+  >(null);
 
   const user = useMemo(() => {
     const data = localStorage.getItem("user");
@@ -123,6 +118,9 @@ export default function Dashboard() {
       .get("/ammunition")
       .then((res) => {
         setAmmunition(res.data);
+        setSelectedAmmunitionType(
+          (current) => current ?? res.data[0]?.product?.name ?? null,
+        );
       })
       .catch(() => setAmmunition([]));
   }, []);
@@ -197,6 +195,19 @@ export default function Dashboard() {
     [ammunition],
   );
 
+  const ammunitionTypes = useMemo(() => {
+    const grouped = new Map<string, any[]>();
+
+    ammunition.forEach((item: any) => {
+      const typeName = item.product?.name || "-";
+      const batches = grouped.get(typeName) || [];
+      batches.push(item);
+      grouped.set(typeName, batches);
+    });
+
+    return Array.from(grouped, ([name, batches]) => ({ name, batches }));
+  }, [ammunition]);
+
   const stats = useMemo(() => {
     const palette = ["blue", "green", "indigo", "emerald", "orange"];
     const categoryCards =
@@ -249,28 +260,6 @@ export default function Dashboard() {
     ];
   }, [weaponSummary, products, totalAmmunition]);
 
-  const ammunitionByType = Object.values(
-    ammunition.reduce(
-      (
-        summary: Record<string, { name: string; quantity: number }>,
-        item: any,
-      ) => {
-        const name = item.product?.name || "Chưa xác định";
-        summary[name] ||= { name, quantity: 0 };
-        summary[name].quantity += Number(item.quantity) || 0;
-        return summary;
-      },
-      {},
-    ),
-  );
-  const ammunitionColors = [
-    "#2563eb",
-    "#16a34a",
-    "#f97316",
-    "#dc2626",
-    "#7c3aed",
-    "#0891b2",
-  ];
   return (
     <div className="space-y-8 pt-2">
       {/* Header */}
@@ -824,69 +813,73 @@ duration-300
         {ammunition.length === 0 ? (
           <p className="text-slate-500">Chưa có dữ liệu đạn dược.</p>
         ) : (
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <div className="min-h-80">
-              <ResponsiveContainer width="100%" height={320}>
-                <PieChart>
-                  <Pie
-                    data={ammunitionByType}
-                    dataKey="quantity"
-                    nameKey="name"
-                    cx="50%"
-                    cy="48%"
-                    outerRadius={105}
-                    label={({ name, percent }) =>
-                      `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
-                    }
-                  >
-                    {ammunitionByType.map((item: any, index: number) => (
-                      <Cell
-                        key={item.name}
-                        fill={ammunitionColors[index % ammunitionColors.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value) => [`${value} viên`, "Số lượng"]}
-                  />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+          <div className="grid min-h-64 grid-cols-1 overflow-hidden rounded-xl border border-slate-200 md:grid-cols-[220px_minmax(0,1fr)]">
+            <div
+              aria-label="Loại đạn"
+              className="flex gap-2 overflow-x-auto border-b border-slate-200 bg-slate-50 p-3 md:flex-col md:overflow-y-auto md:border-r md:border-b-0"
+            >
+              {ammunitionTypes.map((type) => (
+                <button
+                  key={type.name}
+                  type="button"
+                  onClick={() => setSelectedAmmunitionType(type.name)}
+                  aria-pressed={
+                    (selectedAmmunitionType ?? ammunitionTypes[0]?.name) ===
+                    type.name
+                  }
+                  className={`flex min-w-44 items-center justify-between gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold transition-colors md:min-w-0 ${
+                    (selectedAmmunitionType ?? ammunitionTypes[0]?.name) ===
+                    type.name
+                      ? "bg-white text-blue-700 shadow-sm ring-1 ring-slate-200"
+                      : "text-slate-600 hover:bg-white hover:text-slate-800"
+                  }`}
+                >
+                  <span className="truncate">{type.name}</span>
+                  <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
+                    {type.batches.length}
+                  </span>
+                </button>
+              ))}
             </div>
-            <div className="overflow-x-auto rounded-xl border border-slate-200">
-              <table className="w-full min-w-140 text-left text-sm">
-                <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                  <tr>
-                    <th className="px-4 py-3 font-semibold">Loại đạn</th>
-                    <th className="px-4 py-3 font-semibold">Lô</th>
-                    <th className="px-4 py-3 text-right font-semibold">
-                      Số lượng
-                    </th>
-                    <th className="px-4 py-3 text-right font-semibold">
-                      Năm SX
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {ammunition.map((item: any) => (
-                    <tr key={item.id} className="hover:bg-slate-50">
-                      <td className="px-4 py-3 font-medium text-slate-700">
-                        {item.product?.name || "-"}
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">
-                        {item.batch || "-"}
-                      </td>
-                      <td className="px-4 py-3 text-right font-semibold text-slate-800">
-                        {item.quantity} {item.unit || "viên"}
-                      </td>
-                      <td className="px-4 py-3 text-right text-slate-600">
-                        {item.productionYear || "-"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            {(() => {
+              const selectedType =
+                ammunitionTypes.find(
+                  (type) => type.name === selectedAmmunitionType,
+                ) || ammunitionTypes[0];
+
+              return (
+                <div className="min-w-0 overflow-x-auto">
+                  <table className="w-full min-w-120 text-left text-sm">
+                    <thead className="bg-white text-xs uppercase tracking-wide text-slate-500">
+                      <tr>
+                        <th className="px-4 py-3 font-semibold">Lô</th>
+                        <th className="px-4 py-3 text-right font-semibold">
+                          Số lượng
+                        </th>
+                        <th className="px-4 py-3 text-right font-semibold">
+                          Năm SX
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {selectedType?.batches.map((item: any) => (
+                        <tr key={item.id} className="hover:bg-slate-50">
+                          <td className="px-4 py-3 font-medium text-slate-700">
+                            {item.batch || "-"}
+                          </td>
+                          <td className="px-4 py-3 text-right font-semibold text-slate-800">
+                            {item.quantity} {item.unit || "viên"}
+                          </td>
+                          <td className="px-4 py-3 text-right text-slate-600">
+                            {item.productionYear || "-"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>

@@ -1,9 +1,11 @@
-import { Body, Controller, Post, Get, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, Get, Patch, Req, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CreateChildAccountDto } from './dto/create-child-account.dto';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
 
 @ApiTags("Auth")
 @ApiBearerAuth()
@@ -33,6 +35,13 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   childWeaponSummary(@Req() req: any) {
     return this.authService.getChildWeaponSummary(req.user);
+  }
+
+  @Patch('child-weapon-summary/order')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SYSADMIN')
+  reorderChildWeaponSummary(@Req() req: any, @Body() body: { tenantIds: number[] }) {
+    return this.authService.reorderChildTenants(req.user, body?.tenantIds);
   }
 
   @Get('child-accounts')
