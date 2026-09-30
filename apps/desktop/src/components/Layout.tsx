@@ -100,6 +100,7 @@ export default function Layout() {
   }
 `;
 
+  const navIconSize = collapsed ? 24 : 20;
   const displayName = user?.fullName || user?.username || "Người dùng";
   const initials = displayName.charAt(0).toUpperCase();
 
@@ -193,23 +194,23 @@ export default function Layout() {
         >
           {!collapsed && <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Điều hành</p>}
           <NavLink to="/dashboard" className={menuClass}>
-            <Home size={20} />
+            <Home size={navIconSize} />
             {!collapsed && <span>Trang chủ</span>}
           </NavLink>
           <NavLink to="/weapon-search" className={menuClass}>
-            <Search size={20} />
+            <Search size={navIconSize} />
             {!collapsed && <span>Tra cứu khí tài</span>}
           </NavLink>
 
          
           <NavLink to="/products" className={menuClass}>
-            <Shield size={20} />
+            <Shield size={navIconSize} />
             {!collapsed && <span>Thống kê vũ khí</span>}
           </NavLink>
 
           <div className="space-y-1">
             <NavLink to="/inventory" end className={menuClass}>
-              <Warehouse size={20} />
+              <Warehouse size={navIconSize} />
               {!collapsed && <span>Nhập kho</span>}
             </NavLink>
             {!collapsed && (
@@ -225,7 +226,7 @@ export default function Layout() {
           </div>
           <div className="space-y-1">
             <NavLink to="/exports" end className={menuClass}>
-              <Send size={20} />
+              <Send size={navIconSize} />
               {!collapsed && <span>Xuất kho</span>}
             </NavLink>
             {!collapsed && (
@@ -241,32 +242,32 @@ export default function Layout() {
           </div>
          
           <NavLink to="/warehouses" className={menuClass}>
-            <ListCheck size={20} />
+            <ListCheck size={navIconSize} />
             {!collapsed && <span>Danh sách kho</span>}
           </NavLink>
           <NavLink to="/broken-watching" className={menuClass}>
-            <ClockAlert size={30} />
+            <ClockAlert size={navIconSize} />
             {!collapsed && <span>Theo dõi hư hỏng - sửa chữa</span>}
           </NavLink>
           <NavLink to="/owners" className={menuClass}>
-            <Users size={20} />
+            <Users size={navIconSize} />
             {!collapsed && <span>Danh sách Quân nhân</span>}
           </NavLink>
            <NavLink to="/categories" className={menuClass}>
-            <Tags size={20} />
+            <Tags size={navIconSize} />
             {!collapsed && <span>Thêm Danh mục</span>}
           </NavLink>
            <NavLink to="/registrations" className={menuClass}>
-            <ClipboardList size={30} />
+            <ClipboardList size={navIconSize} />
             {!collapsed && <span>Biên chế cá nhân</span>}
           </NavLink>
           <NavLink to="/logs" className={menuClass}>
-            <Activity size={20} />
+            <Activity size={navIconSize} />
             {!collapsed && <span>Nhật ký hệ thống</span>}
           </NavLink>
           {canManageChildren && (
             <NavLink to="/child-accounts" className={menuClass}>
-              <UserPlus size={20} />
+              <UserPlus size={navIconSize} />
               {!collapsed && <span>Tài khoản cấp dưới</span>}
             </NavLink>
           )}
