@@ -103,6 +103,7 @@ export default function Dashboard() {
         const quantity = product.details.length;
 
         grouped[categoryName].products.push({
+          id: product.id,
           name: product.name,
           quantity,
           image: product.image || null,
@@ -722,7 +723,7 @@ duration-300
         {/* Biểu đồ cột ngang */}
 
         <div className="bg-white rounded-xl shadow-sm border p-6">
-          <h2 className="text-xl font-bold mb-6">
+          <h2 className="mb-6 text-xl font-bold">
             Chi tiết số lượng vũ khí hiện tại
           </h2>
 
@@ -765,12 +766,15 @@ duration-300
                           <th className="w-36 px-4 py-3 text-right font-semibold">
                             Số lượng
                           </th>
+                          <th className="w-40 px-4 py-3 text-center font-semibold">
+                            Thao tác
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {selectedCategory.products.map((product: any) => (
                           <tr
-                            key={product.name}
+                            key={product.id}
                             className="transition-colors hover:bg-slate-50"
                           >
                             <td className="px-4 py-3 text-slate-700">
@@ -785,6 +789,14 @@ duration-300
                             </td>
                             <td className="px-4 py-3 text-right font-semibold text-slate-800">
                               {product.quantity}
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <Link
+                                to={`/products/${product.id}`}
+                                className="inline-flex items-center rounded-md border border-blue-200 px-3 py-1.5 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                              >
+                                Xem chi tiết
+                              </Link>
                             </td>
                           </tr>
                         ))}

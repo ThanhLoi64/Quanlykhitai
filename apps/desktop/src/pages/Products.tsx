@@ -310,13 +310,13 @@ export default function Products() {
     {
       field: "quantity",
       headerName: "Số lượng trong kho",
-      width: 160,
+      width: 150,
     },
 
     {
       field: "category",
       headerName: "Danh mục",
-      width: 180,
+      width: 170,
 
       valueGetter: (_, row) => {
         return row.category?.name || "";

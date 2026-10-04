@@ -30,7 +30,43 @@ export default function ProductDetail() {
     setProduct(res.data);
   }
 
-  if (!product) return <div>Đang tải...</div>;
+  if (!product)
+    return (
+      <div className="mx-auto max-w-7xl space-y-6" role="status" aria-live="polite">
+        <span className="sr-only">Đang tải chi tiết khí tài...</span>
+        <div className="rounded-xl border bg-white p-5 shadow-sm">
+          <div className="mb-5 flex items-center justify-between">
+            <div className="h-10 w-28 animate-pulse rounded-lg bg-slate-200" />
+            <div className="h-7 w-56 animate-pulse rounded bg-slate-200" />
+            <div className="w-30" />
+          </div>
+          <div className="flex flex-col items-center gap-6 rounded-xl border bg-slate-50 p-5 sm:flex-row">
+            <div className="aspect-3/2 w-full max-w-75 animate-pulse rounded-xl bg-slate-200" />
+            <div className="w-full space-y-3">
+              <div className="h-8 w-2/3 animate-pulse rounded bg-slate-200" />
+              <div className="h-4 w-1/2 animate-pulse rounded bg-slate-200" />
+            </div>
+          </div>
+          <div className="mt-6 h-16 animate-pulse rounded-lg bg-slate-100" />
+        </div>
+        <div className="flex gap-6 border-b">
+          <div className="h-12 w-24 animate-pulse rounded-t bg-slate-200" />
+          <div className="h-12 w-36 animate-pulse rounded-t bg-slate-100" />
+          <div className="h-12 w-24 animate-pulse rounded-t bg-slate-100" />
+        </div>
+        <div className="rounded-xl border bg-white p-6 shadow-sm">
+          <div className="mb-5 h-6 w-40 animate-pulse rounded bg-slate-200" />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {Array.from({ length: 6 }, (_, index) => (
+              <div
+                key={index}
+                className="h-20 animate-pulse rounded-lg border border-slate-100 bg-slate-50"
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
