@@ -182,7 +182,7 @@ export default function Products() {
     if (!deleteId || isDeleting) return;
 
     setIsDeleting(true);
-    const loadingToast = toast.loading("Đang xóa sản phẩm...");
+    const loadingToast = toast.loading("Đang xóa khí tài...");
     try {
       await api.delete(`/products/${deleteId}`);
 
@@ -194,7 +194,7 @@ export default function Products() {
       load();
     } catch {
       toast.dismiss(loadingToast);
-      toast.error("Không thể xóa sản phẩm");
+      toast.error("Không thể xóa khí tài");
     } finally {
       setIsDeleting(false);
     }
@@ -229,7 +229,7 @@ export default function Products() {
 
       setIsSaving(true);
       loadingToast = toast.loading(
-        editId ? "Đang cập nhật sản phẩm..." : "Đang thêm sản phẩm..."
+        editId ? "Đang cập nhật khí tài..." : "Đang thêm khí tài..."
       );
 
       if (editId) {
@@ -646,10 +646,10 @@ export default function Products() {
         open={deleteId !== null}
         onClose={() => setDeleteId(null)}
       >
-        <DialogTitle>Xóa sản phẩm</DialogTitle>
+        <DialogTitle>Xóa khí tài</DialogTitle>
 
         <DialogContent>
-          Bạn có chắc muốn xóa sản phẩm này?
+          Bạn có chắc muốn xóa khí tài này?
         </DialogContent>
 
         <DialogActions>

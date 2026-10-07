@@ -1,23 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import api from "../api/api";
 import { toast } from "sonner";
 import { DataGrid } from "@mui/x-data-grid";
-import type { GridColDef } from "@mui/x-data-grid";
+import type { GridColDef, GridPaginationModel } from "@mui/x-data-grid";
 import { Box, Button, Chip } from "@mui/material";
 import { Add, Delete, Edit } from "@mui/icons-material";
-import { useRef } from "react";
 import * as XLSX from "xlsx";
 import { downloadInventoryTemplate } from "../utils/excelTemplates";
-
-function isAmmunition(product: any) {
-  const text = `${product.name || ""} ${product.category?.name || ""}`.toLowerCase();
-  return /đạn|dan duoc|đạn dược|ammunition/.test(text);
-}
 
 export default function Inventory() {
   const [products, setProducts] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [totalRows, setTotalRows] = useState(0);
+  const [categoryCounts, setCategoryCounts] = useState<Record<number, number>>({});
+  const [loading, setLoading] = useState(true);
+  const [reloadVersion, setReloadVersion] = useState(0);
+  const [optionsVersion, setOptionsVersion] = useState(0);
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+    page: 0,
+    pageSize: 10,
+  });
   const [warehouseId, setWarehouseId] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<number | "all">(
     "all",
@@ -125,35 +128,67 @@ export default function Inventory() {
     },
   ];
 
-  async function load() {
-    try {
-      const productRes = await api.get("/products");
-      const inventoryRes = await api.get("/inventory");
-      const warehouseRes = await api.get("/warehouses");
-      setWarehouses(warehouseRes.data);
-
-      setProducts(productRes.data.filter((product: any) => !isAmmunition(product)));
-      setItems(inventoryRes.data.filter((item: any) => !isAmmunition(item.product)));
-    } catch {
-      toast.error("Không tải được dữ liệu");
-    }
-  }
+  useEffect(() => {
+    api
+      .get("/inventory/page-options")
+      .then(({ data }) => {
+        setProducts(data.products);
+        setWarehouses(data.warehouses);
+        setCategoryCounts(data.categoryCounts);
+      })
+      .catch(() => toast.error("Không tải được tùy chọn kho"));
+  }, [optionsVersion]);
 
   useEffect(() => {
-    load();
-  }, []);
+    let active = true;
+    api
+      .get("/inventory/page", {
+        params: {
+          page: paginationModel.page + 1,
+          limit: paginationModel.pageSize,
+          ...(selectedCategory === "all" ? {} : { categoryId: selectedCategory }),
+        },
+      })
+      .then(({ data }) => {
+        if (!active) return;
+        setItems(data.items);
+        setTotalRows(data.total);
+      })
+      .catch(() => {
+        if (active) toast.error("Không tải được dữ liệu kho");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [paginationModel.page, paginationModel.pageSize, selectedCategory, reloadVersion]);
+
+  function refreshItems() {
+    setLoading(true);
+    setReloadVersion((version) => version + 1);
+    setOptionsVersion((version) => version + 1);
+  }
 
   async function handleDelete(id: number) {
-    if (!window.confirm("Bạn có chắc muốn xóa sản phẩm này khỏi kho?")) return;
+    if (!window.confirm("Bạn có chắc muốn xóa khí tài này khỏi kho?")) return;
 
     try {
       await api.delete(`/inventory/${id}`);
-      toast.success("Xóa sản phẩm khỏi kho thành công");
+      toast.success("Xóa khí tài khỏi kho thành công");
       setOpen(false);
       setEditId(null);
-      await load();
+      if (items.length === 1 && paginationModel.page > 0) {
+        setLoading(true);
+        setPaginationModel((current) => ({ ...current, page: current.page - 1 }));
+        setOptionsVersion((version) => version + 1);
+      } else {
+        refreshItems();
+      }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Xóa sản phẩm thất bại");
+      toast.error(err.response?.data?.message || "Xóa khí tài thất bại");
     }
   }
 
@@ -175,13 +210,7 @@ export default function Inventory() {
     }
 
     const duplicateInForm = new Set(normalizedSerials).size !== normalizedSerials.length;
-    const duplicate = items.some(
-      (item) =>
-        item.productId === Number(productId) &&
-        normalizedSerials.includes(item.serialNumber?.trim()),
-    );
-
-    if (duplicate || duplicateInForm) {
+    if (duplicateInForm) {
       toast.error("Số hiệu đã tồn tại vui lòng nhập lại");
       return;
     }
@@ -206,7 +235,7 @@ export default function Inventory() {
 
       setOpen(false); // đóng modal
 
-      load();
+      refreshItems();
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Không thể nhập kho");
     }
@@ -247,18 +276,6 @@ export default function Inventory() {
 
     try {
       if (editId) {
-        const duplicate = items.find(
-          (item) =>
-            item.id !== editId &&
-            item.productId === Number(productId) &&
-            item.serialNumber?.trim() === normalizedSerials[0],
-        );
-
-        if (duplicate) {
-          toast.error("Số hiệu đã tồn tại vui lòng nhập lại");
-          return;
-        }
-
         await api.patch(`/inventory/${editId}`, {
           productId: Number(productId),
           warehouseId: Number(warehouseId),
@@ -279,10 +296,12 @@ export default function Inventory() {
       setSerialNumbers([]);
       setImportOrder("");
       setOpen(false);
-      load();
+      refreshItems();
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Không thể lưu thay đổi");
+      return;
     }
+
   }
 
   function addSerialNumber() {
@@ -299,18 +318,6 @@ export default function Inventory() {
 
     if (serialNumbers.some((item) => item.trim() === serial)) {
       toast.error("Số hiệu này đã được thêm");
-      return;
-    }
-
-    if (
-      productId &&
-      items.some(
-        (item) =>
-          item.productId === Number(productId) &&
-          item.serialNumber?.trim() === serial,
-      )
-    ) {
-      toast.error("Số hiệu đã tồn tại trong kho");
       return;
     }
 
@@ -346,7 +353,7 @@ export default function Inventory() {
 
       toast.success("Import thành công");
 
-      load();
+      refreshItems();
     } catch (err) {
       console.error(err);
       toast.error("Import thất bại");
@@ -365,13 +372,7 @@ export default function Inventory() {
     }
   }
   const filteredItems = items.filter((item) => {
-    const matchCategory =
-      selectedCategory === "all" ||
-      item.product?.categoryId === Number(selectedCategory) ||
-      item.product?.category?.id === Number(selectedCategory);
-
     return (
-      matchCategory &&
       (!filters.productId || item.productId === Number(filters.productId)) &&
       (!filters.warehouseId ||
         item.warehouseId === Number(filters.warehouseId)) &&
@@ -385,7 +386,7 @@ export default function Inventory() {
   });
   const rows = filteredItems.map((i, index) => ({
     id: i.id,
-    stt: index + 1,
+    stt: paginationModel.page * paginationModel.pageSize + index + 1,
     product: i.product?.name,
     serialNumber: i.serialNumber,
     importOrder: i.importOrder || "-",
@@ -475,7 +476,11 @@ export default function Inventory() {
             <div className="flex items-center gap-2 overflow-x-auto">
               {/* TẤT CẢ */}
               <button
-                onClick={() => setSelectedCategory("all")}
+                onClick={() => {
+                  setLoading(true);
+                  setPaginationModel((current) => ({ ...current, page: 0 }));
+                  setSelectedCategory("all");
+                }}
                 className={`
             px-5 py-3 font-semibold whitespace-nowrap border-b-2 transition
             ${
@@ -487,7 +492,7 @@ export default function Inventory() {
               >
                 Tất cả
                 <span className="ml-2 rounded-full bg-slate-100 px-2 py-1 text-xs">
-                  {items.length}
+                  {selectedCategory === "all" ? totalRows : ""}
                 </span>
               </button>
 
@@ -502,16 +507,16 @@ export default function Inventory() {
               ]
                 .filter(Boolean)
                 .map((category: any) => {
-                  const count = items.filter(
-                    (item) =>
-                      item.product?.categoryId === category.id ||
-                      item.product?.category?.id === category.id,
-                  ).length;
+                  const count = categoryCounts[category.id] || 0;
 
                   return (
                     <button
                       key={category.id}
-                      onClick={() => setSelectedCategory(category.id)}
+                      onClick={() => {
+                        setLoading(true);
+                        setPaginationModel((current) => ({ ...current, page: 0 }));
+                        setSelectedCategory(category.id);
+                      }}
                       className={`
                   px-5 py-3 font-semibold whitespace-nowrap
                   border-b-2 transition
@@ -555,13 +560,14 @@ export default function Inventory() {
             rows={rows}
             columns={columns}
             pageSizeOptions={[10, 20, 50, 100]}
-            initialState={{
-              pagination: {
-                paginationModel: {
-                  pageSize: 10,
-                },
-              },
+            paginationMode="server"
+            paginationModel={paginationModel}
+            onPaginationModelChange={(model) => {
+              setLoading(true);
+              setPaginationModel(model);
             }}
+            rowCount={totalRows}
+            loading={loading}
             disableRowSelectionOnClick
           />
         </Box>

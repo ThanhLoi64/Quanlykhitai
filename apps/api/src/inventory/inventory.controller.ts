@@ -8,6 +8,9 @@ import {
   Delete,
   Req,
   UseGuards,
+  Query,
+  ParseIntPipe,
+  DefaultValuePipe,
 } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { CreateInventoryDto } from './dto/create-inventory.dto';
@@ -32,6 +35,24 @@ export class InventoryController {
   @Get('warehouse-summary')
   warehouseSummary() {
     return this.service.warehouseSummary();
+  }
+
+  @Get('page')
+  findPage(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @Query('categoryId') categoryId?: string,
+  ) {
+    return this.service.findPage(
+      page,
+      limit,
+      categoryId ? Number(categoryId) : undefined,
+    );
+  }
+
+  @Get('page-options')
+  findPageOptions() {
+    return this.service.findPageOptions();
   }
 
   @Get()

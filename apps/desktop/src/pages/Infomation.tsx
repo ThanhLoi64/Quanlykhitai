@@ -27,7 +27,7 @@ export default function Information() {
 
           <p>
             Hệ thống quản lý khí tài được xây dựng nhằm hỗ trợ
-            quản lý thông tin sản phẩm, khí tài, người sử dụng
+            quản lý thông tin , khí tài, người sử dụng
             và quá trình sửa chữa.
           </p>
 
@@ -82,7 +82,7 @@ export default function Information() {
             </li>
 
             <li>
-              Quản lý thông tin sản phẩm
+              Quản lý thông tin khí tài
             </li>
 
             <li>

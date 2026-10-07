@@ -141,7 +141,6 @@ export default function ChildAccounts() {
       <header>
         <p className="text-sm font-semibold uppercase tracking-wider text-blue-600">Quản trị phân cấp</p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-800">Tài khoản cấp dưới</h1>
-        <p className="mt-2 text-slate-500">Tạo tài khoản <strong>{nextRole.toLowerCase()}</strong> thuộc tenant của bạn.</p>
       </header>
 
       {currentUser?.role === "SYSADMIN" && (
@@ -219,7 +218,6 @@ export default function ChildAccounts() {
             <div className="rounded-lg bg-blue-50 p-3 text-blue-600"><UserPlus size={22} /></div>
             <div>
               <h2 className="font-bold text-slate-800">Tạo tài khoản mới</h2>
-              <p className="text-sm text-slate-500">Cấp được tạo: {nextRole}</p>
             </div>
           </div>
           <div className="space-y-4">
@@ -241,7 +239,7 @@ export default function ChildAccounts() {
         <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-6 flex items-center gap-3">
             <div className="rounded-lg bg-emerald-50 p-3 text-emerald-600"><ShieldCheck size={22} /></div>
-            <div><h2 className="font-bold text-slate-800">Tài khoản trong nhánh</h2><p className="text-sm text-slate-500">Chỉ xem thông tin, không thao tác dữ liệu của họ.</p></div>
+            <div><h2 className="font-bold text-slate-800">Tài khoản trong biên chế</h2><p className="text-sm text-slate-500">Chỉ xem thông tin</p></div>
           </div>
           <div className="divide-y divide-slate-100">
             {accounts.length === 0 && <p className="py-6 text-sm text-slate-500">Chưa có tài khoản cấp dưới.</p>}

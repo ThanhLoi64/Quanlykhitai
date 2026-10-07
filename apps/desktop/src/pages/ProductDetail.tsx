@@ -218,7 +218,7 @@ export default function ProductDetail() {
       {/* TAB */}
 
       <div className="flex border-b overflow-x-auto">
-        {["Thông tin", "Danh sách Biên chế", "Lịch sử", "Tài liệu"].map(
+        {["Thông tin", "Danh sách Biên chế", "Lịch sử", "Tính năng chiến kỹ thuật"].map(
           (tab) => (
             <button
               key={tab}
@@ -271,7 +271,7 @@ md:grid-cols-3
 gap-4
 "
             >
-              <InfoBox label="Tên sản phẩm" value={product.name} />
+              <InfoBox label="Tên khí tài" value={product.name} />
 
               <InfoBox label="Đơn vị tính" value={product.unit} />
               <InfoBox label="Danh mục" value={product.category?.name} />
@@ -390,9 +390,9 @@ gap-4
 
         {/* TAB TÀI LIỆU */}
 
-        {activeTab === "Tài liệu" && (
+        {activeTab === "Tính năng chiến kỹ thuật" && (
           <div>
-            <h2 className="text-xl font-bold mb-5">Tài liệu</h2>
+            <h2 className="text-xl font-bold mb-5">Tính năng chiến kỹ thuật</h2>
 
             <p className="whitespace-pre-line text-slate-700">
               {product.documents || "Chưa có tài liệu"}
