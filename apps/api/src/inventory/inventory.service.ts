@@ -384,6 +384,116 @@ export class InventoryService {
   });
 }
 
+  async findPage(page = 1, limit = 10, categoryId?: number) {
+    const currentPage = Math.max(1, page);
+    const pageSize = Math.min(100, Math.max(1, limit));
+    const products = await this.prisma.product.findMany({
+      select: {
+        id: true,
+        name: true,
+        categoryId: true,
+        category: { select: { id: true, name: true } },
+      },
+    });
+    const inventoryProductIds = products
+      .filter(
+        (product) =>
+          !/đạn|dan duoc|đạn dược|ammunition/i.test(
+            `${product.name} ${product.category.name}`,
+          ),
+      )
+      .map((product) => product.id);
+    const selectedProductIds = categoryId
+      ? products
+          .filter(
+            (product) =>
+              product.categoryId === categoryId &&
+              !/đạn|dan duoc|đạn dược|ammunition/i.test(
+                `${product.name} ${product.category.name}`,
+              ),
+          )
+          .map((product) => product.id)
+      : inventoryProductIds;
+    const where = { productId: { in: selectedProductIds } };
+
+    const [items, total] = await Promise.all([
+      this.prisma.productDetail.findMany({
+        where,
+        select: {
+          id: true,
+          productId: true,
+          ownerId: true,
+          serialNumber: true,
+          importOrder: true,
+          accessory: true,
+          equipment: true,
+          militaryEquipment: true,
+          status: true,
+          warehouseId: true,
+          product: {
+            select: {
+              id: true,
+              name: true,
+              categoryId: true,
+              category: { select: { id: true, name: true } },
+            },
+          },
+          warehouse: { select: { id: true, name: true } },
+        },
+        orderBy: { id: 'desc' },
+        skip: (currentPage - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.productDetail.count({ where }),
+    ]);
+
+    return { items, total, page: currentPage, pageSize };
+  }
+
+  async findPageOptions() {
+    const [products, warehouses] = await Promise.all([
+      this.prisma.product.findMany({
+        select: {
+          id: true,
+          name: true,
+          categoryId: true,
+          category: { select: { id: true, name: true } },
+        },
+      }),
+      this.prisma.warehouse.findMany({
+        select: { id: true, name: true },
+      }),
+    ]);
+    const inventoryProducts = products.filter(
+      (product) =>
+        !/đạn|dan duoc|đạn dược|ammunition/i.test(
+          `${product.name} ${product.category.name}`,
+        ),
+    );
+    const groupedCounts = await this.prisma.productDetail.groupBy({
+      by: ['productId'],
+      where: { productId: { in: inventoryProducts.map((product) => product.id) } },
+      _count: { id: true },
+    });
+    const productCategories = new Map(
+      inventoryProducts.map((product) => [product.id, product.categoryId]),
+    );
+    const categoryCounts: Record<number, number> = {};
+    for (const group of groupedCounts) {
+      const categoryId = productCategories.get(group.productId);
+      if (categoryId) {
+        categoryCounts[categoryId] =
+          (categoryCounts[categoryId] || 0) + group._count.id;
+      }
+    }
+
+    return {
+      products: inventoryProducts,
+      warehouses,
+      categoryCounts,
+    };
+  }
+
   async create(dto: CreateInventoryDto) {
     const tenantId = this.prisma.getCurrentTenantId();
     if (!tenantId) throw new BadRequestException("Tenant không hợp lệ");

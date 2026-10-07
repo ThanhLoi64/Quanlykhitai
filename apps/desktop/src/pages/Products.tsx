@@ -30,6 +30,17 @@ function isAmmunition(product: any) {
   return /đạn|dan duoc|ammunition/.test(text);
 }
 
+const categoryOrder = ["vũ khí", "trang bị", "khí tài", "đạn dược", "quân cụ"];
+
+function sortCategories(items: any[]) {
+  return [...items].sort((left, right) => {
+    const leftIndex = categoryOrder.indexOf(left.name.trim().toLocaleLowerCase("vi"));
+    const rightIndex = categoryOrder.indexOf(right.name.trim().toLocaleLowerCase("vi"));
+    return (leftIndex < 0 ? categoryOrder.length : leftIndex) -
+      (rightIndex < 0 ? categoryOrder.length : rightIndex);
+  });
+}
+
 export default function Products() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -45,9 +56,7 @@ export default function Products() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Tab đang được chọn
-  const [selectedCategory, setSelectedCategory] = useState<number | "all">(
-    "all"
-  );
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
 
   const navigate = useNavigate();
 
@@ -90,17 +99,13 @@ export default function Products() {
             : product,
         ),
       );
-      setCategories(categoryRes.data);
-
-      // Nếu tab hiện tại không còn tồn tại thì về Tất cả
-      if (
-        selectedCategory !== "all" &&
-        !categoryRes.data.some(
-          (category: any) => category.id === selectedCategory
-        )
-      ) {
-        setSelectedCategory("all");
-      }
+      const orderedCategories = sortCategories(categoryRes.data);
+      setCategories(orderedCategories);
+      setSelectedCategory((current) =>
+        orderedCategories.some((category: any) => category.id === current)
+          ? current
+          : orderedCategories[0]?.id ?? null,
+      );
     } catch (error) {
       toast.error("Không thể tải dữ liệu");
     }
@@ -114,12 +119,9 @@ export default function Products() {
   // FILTER PRODUCTS
   // =========================
 
-  const filteredProducts =
-    selectedCategory === "all"
-      ? products
-      : products.filter(
-          (product) => product.categoryId === selectedCategory
-        );
+  const filteredProducts = products.filter(
+    (product) => product.categoryId === selectedCategory,
+  );
 
   // =========================
   // CREATE
@@ -141,7 +143,7 @@ export default function Products() {
       usageHistory: "",
       documents: "",
       categoryId:
-        selectedCategory === "all" ? 0 : Number(selectedCategory),
+        selectedCategory ?? 0,
     });
 
     setOpenModal(true);
@@ -180,7 +182,7 @@ export default function Products() {
     if (!deleteId || isDeleting) return;
 
     setIsDeleting(true);
-    const loadingToast = toast.loading("Đang xóa sản phẩm...");
+    const loadingToast = toast.loading("Đang xóa khí tài...");
     try {
       await api.delete(`/products/${deleteId}`);
 
@@ -192,7 +194,7 @@ export default function Products() {
       load();
     } catch {
       toast.dismiss(loadingToast);
-      toast.error("Không thể xóa sản phẩm");
+      toast.error("Không thể xóa khí tài");
     } finally {
       setIsDeleting(false);
     }
@@ -227,7 +229,7 @@ export default function Products() {
 
       setIsSaving(true);
       loadingToast = toast.loading(
-        editId ? "Đang cập nhật sản phẩm..." : "Đang thêm sản phẩm..."
+        editId ? "Đang cập nhật khí tài..." : "Đang thêm khí tài..."
       );
 
       if (editId) {
@@ -249,9 +251,12 @@ export default function Products() {
       setOpenModal(false);
 
       load();
-    } catch {
+    } catch (error: any) {
       if (loadingToast) toast.dismiss(loadingToast);
-      toast.error("Có lỗi xảy ra");
+      const message = error.response?.data?.message;
+      toast.error(
+        Array.isArray(message) ? message.join("; ") : message || "Có lỗi xảy ra",
+      );
     } finally {
       setIsSaving(false);
     }
@@ -305,13 +310,13 @@ export default function Products() {
     {
       field: "quantity",
       headerName: "Số lượng trong kho",
-      width: 160,
+      width: 150,
     },
 
     {
       field: "category",
       headerName: "Danh mục",
-      width: 180,
+      width: 170,
 
       valueGetter: (_, row) => {
         return row.category?.name || "";
@@ -420,12 +425,6 @@ export default function Products() {
             variant="scrollable"
             scrollButtons="auto"
           >
-            {/* TẤT CẢ */}
-            <Tab
-              label={`Tất cả (${products.length})`}
-              value="all"
-            />
-
             {/* CÁC DANH MỤC */}
             {categories.map((category) => {
               const count = products.filter(
@@ -647,10 +646,10 @@ export default function Products() {
         open={deleteId !== null}
         onClose={() => setDeleteId(null)}
       >
-        <DialogTitle>Xóa sản phẩm</DialogTitle>
+        <DialogTitle>Xóa khí tài</DialogTitle>
 
         <DialogContent>
-          Bạn có chắc muốn xóa sản phẩm này?
+          Bạn có chắc muốn xóa khí tài này?
         </DialogContent>
 
         <DialogActions>

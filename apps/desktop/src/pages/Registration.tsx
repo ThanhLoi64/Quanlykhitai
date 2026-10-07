@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import api from "../api/api";
 import { toast } from "sonner";
 import {
@@ -15,7 +15,11 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { DataGrid, type GridColDef } from "@mui/x-data-grid";
+import {
+  DataGrid,
+  type GridColDef,
+  type GridPaginationModel,
+} from "@mui/x-data-grid";
 
 const accessoryOptions = [
   "Cán thông nòng",
@@ -49,6 +53,15 @@ export default function Registration() {
   const [products, setProducts] = useState<any[]>([]);
   const [inventories, setInventories] = useState<any[]>([]);
   const [registrations, setRegistrations] = useState<any[]>([]);
+  const [totalRows, setTotalRows] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [reloadVersion, setReloadVersion] = useState(0);
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+    page: 0,
+    pageSize: 10,
+  });
+  const formOptionsLoaded = useRef(false);
+  const formOptionsRequest = useRef<Promise<void> | null>(null);
 
   const [ownerId, setOwnerId] = useState("");
   const [productId, setProductId] = useState("");
@@ -65,6 +78,30 @@ export default function Registration() {
   const [editingRegistrationId, setEditingRegistrationId] = useState<
     number | null
   >(null);
+
+  function loadFormOptions(): Promise<void> {
+    if (formOptionsLoaded.current) return Promise.resolve();
+    if (formOptionsRequest.current) return formOptionsRequest.current;
+
+    const request = api
+      .get("/registrations/options")
+      .then(({ data }) => {
+        setOwners(data.owners);
+        setProducts(data.products);
+        setInventories(data.inventories);
+        formOptionsLoaded.current = true;
+      })
+      .catch(() => {
+        toast.error("Không tải được dữ liệu biểu mẫu");
+      });
+    formOptionsRequest.current = request;
+    void request.finally(() => {
+      if (formOptionsRequest.current === request) {
+        formOptionsRequest.current = null;
+      }
+    });
+    return request;
+  }
 
   const availableInventories = inventories.filter(
     (item) =>
@@ -85,6 +122,7 @@ export default function Registration() {
     setIsEditMode(false);
     setEditingRegistrationId(null);
     setOpen(true);
+    void loadFormOptions();
   }
 
   function closeModal() {
@@ -130,6 +168,7 @@ export default function Registration() {
       ),
     );
     setOpen(true);
+    void loadFormOptions();
   }
 
   function openDetailModal(registration: any) {
@@ -141,51 +180,62 @@ export default function Registration() {
     setDetailOpen(false);
     setSelectedRegistration(null);
   }
-  // load data
-
-  async function load() {
-    try {
-      const ownerRes = await api.get("/owners");
-
-      const productRes = await api.get("/products");
-
-      const inventoryRes = await api.get("/inventory");
-
-      const registrationRes = await api.get("/registrations");
-
-      setOwners(ownerRes.data);
-      setProducts(productRes.data);
-      setInventories(inventoryRes.data);
-      setRegistrations(registrationRes.data);
-    } catch {
-      toast.error("Không tải được dữ liệu");
-    }
-  }
-
   useEffect(() => {
-    load();
-  }, []);
+    let active = true;
+
+    api
+      .get("/registrations", {
+        params: {
+          page: paginationModel.page + 1,
+          limit: paginationModel.pageSize,
+        },
+      })
+      .then(({ data }) => {
+        if (!active) return;
+        setRegistrations(data.items);
+        setTotalRows(data.total);
+      })
+      .catch(() => {
+        if (active) toast.error("Không tải được dữ liệu đăng ký");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [paginationModel.page, paginationModel.pageSize, reloadVersion]);
 
   async function handleDelete(id: number) {
-    if (!window.confirm("Bạn có chắc muốn xóa đăng ký này?")) return;
+    if (!window.confirm("Bạn có chắc muốn thu hồi đăng ký này?")) return;
 
     try {
       await api.delete(`/registrations/${id}`);
-      toast.success("Xóa đăng ký thành công");
-      load();
+      toast.success("thu hồi đăng ký thành công");
+      formOptionsLoaded.current = false;
+      if (registrations.length === 1 && paginationModel.page > 0) {
+        setLoading(true);
+        setPaginationModel((current) => ({
+          ...current,
+          page: current.page - 1,
+        }));
+      } else {
+        setLoading(true);
+        setReloadVersion((version) => version + 1);
+      }
     } catch {
-      toast.error("Xóa đăng ký thất bại");
+      toast.error("thu hồi đăng ký thất bại");
     }
   }
 
   const columns: GridColDef[] = [
-    { field: "id", headerName: "ID", width: 90 },
-    { field: "stt", headerName: "STT", width: 70 },
-    { field: "fullName", headerName: "Họ tên", width: 200 },
+    { field: "stt", headerName: "STT", width: 40 },
+    { field: "fullName", headerName: "Họ tên", width: 150 },
     { field: "rank", headerName: "Cấp bậc", flex: 1 },
     { field: "position", headerName: "Chức vụ", flex: 1 },
     { field: "department", headerName: "Đơn vị", flex: 1 },
-    { field: "productName", headerName: "Khí tài", flex: 1.2 },
+    { field: "productName", headerName: "Khí tài", flex: 1.5 },
     { field: "serialNumber", headerName: "Số hiệu", flex: 1 },
     { field: "registeredAt", headerName: "Ngày đăng ký", flex: 1 },
     {
@@ -217,7 +267,7 @@ export default function Registration() {
             variant="outlined"
             onClick={() => handleDelete(params.row.raw.id)}
           >
-            Xóa
+            Thu hồi
           </Button>
         </Box>
       ),
@@ -226,7 +276,7 @@ export default function Registration() {
 
   const rows = registrations.map((r, index) => ({
     id: r.id,
-    stt: index + 1,
+    stt: paginationModel.page * paginationModel.pageSize + index + 1,
     fullName: r.owner?.fullName || "-",
     rank: r.owner?.rank || "-",
     position: r.owner?.position || "-",
@@ -263,7 +313,10 @@ export default function Registration() {
       }
 
       closeModal();
-      load();
+      formOptionsLoaded.current = false;
+      setLoading(true);
+      setPaginationModel((current) => ({ ...current, page: 0 }));
+      setReloadVersion((version) => version + 1);
     } catch {
       toast.error(
         editingRegistrationId
@@ -738,18 +791,19 @@ export default function Registration() {
       {/* TABLE */}
 
       <div className="mt-8 bg-white rounded-xl shadow overflow-hidden">
-        <Box sx={{ height: 600, bgcolor: "white", borderRadius: 2 }}>
+        <Box sx={{ height: 550, bgcolor: "white", borderRadius: 2 }}>
           <DataGrid
             rows={rows}
             columns={columns}
             pageSizeOptions={[10, 20, 50]}
-            initialState={{
-              pagination: {
-                paginationModel: {
-                  pageSize: 10,
-                },
-              },
+            paginationMode="server"
+            paginationModel={paginationModel}
+            onPaginationModelChange={(model) => {
+              setLoading(true);
+              setPaginationModel(model);
             }}
+            rowCount={totalRows}
+            loading={loading}
             disableRowSelectionOnClick
           />
         </Box>

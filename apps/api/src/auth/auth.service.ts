@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -90,9 +90,9 @@ async getChildWeaponSummary(user: { tenantId: number; role: string }) {
   if (!roles) return [];
 
   return this.prisma.runWithoutTenant(async () => {
-    const tenants = await this.prisma.tenant.findMany({
-      select: { id: true, name: true, parentId: true },
-    });
+    const tenants = await this.prisma.$queryRaw<
+      Array<{ id: number; name: string; parentId: number | null; displayOrder: number }>
+    >`SELECT "id", "name", "parentId", "displayOrder" FROM "Tenant"`;
     const [childUsers, products] = await Promise.all([
       this.prisma.user.findMany({
         where: { role: { in: roles as any } },
@@ -103,7 +103,13 @@ async getChildWeaponSummary(user: { tenantId: number; role: string }) {
       }),
     ]);
 
-    const childIds = [...new Set(childUsers.map((account) => account.tenantId))];
+    const childIds = [...new Set(childUsers.map((account) => account.tenantId))].sort(
+      (leftId, rightId) => {
+        const left = tenants.find((tenant) => tenant.id === leftId);
+        const right = tenants.find((tenant) => tenant.id === rightId);
+        return (left?.displayOrder ?? 0) - (right?.displayOrder ?? 0) || leftId - rightId;
+      },
+    );
 
     return childIds.map((tenantId) => {
       const tenant = tenants.find((item) => item.id === tenantId)!;
@@ -117,6 +123,42 @@ async getChildWeaponSummary(user: { tenantId: number; role: string }) {
         products: products.filter((item) => item.tenantId === tenantId),
       };
     });
+  });
+}
+
+async reorderChildTenants(user: { role: string }, tenantIds: unknown) {
+  if (user.role !== 'SYSADMIN') {
+    throw new ForbiddenException('Chỉ SYSADMIN được sắp xếp thứ tự đơn vị toàn hệ thống');
+  }
+  if (
+    !Array.isArray(tenantIds) ||
+    !tenantIds.every((id) => Number.isInteger(id) && id > 0) ||
+    new Set(tenantIds).size !== tenantIds.length
+  ) {
+    throw new BadRequestException('Danh sách tenantIds không hợp lệ');
+  }
+
+  return this.prisma.runWithoutTenant(async () => {
+    const users = await this.prisma.user.findMany({
+      where: { role: { in: ['ADMIN', 'STAFF', 'USER'] as any } },
+      select: { tenantId: true },
+    });
+    const allowedIds = new Set(users.map((account) => account.tenantId));
+    if (
+      tenantIds.length !== allowedIds.size ||
+      tenantIds.some((id) => !allowedIds.has(id))
+    ) {
+      throw new BadRequestException('Danh sách đơn vị đã thay đổi. Hãy tải lại trang rồi thử lại.');
+    }
+
+    await this.prisma.$transaction(
+      tenantIds.map((id, displayOrder) =>
+        this.prisma.$executeRaw`
+          UPDATE "Tenant" SET "displayOrder" = ${displayOrder} WHERE "id" = ${id}
+        `,
+      ),
+    );
+    return { success: true };
   });
 }
 

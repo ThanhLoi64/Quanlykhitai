@@ -1,4 +1,17 @@
-import { Controller, Post, Get, Body, Patch, Delete, Param, ParseIntPipe, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Patch,
+  Delete,
+  Param,
+  ParseIntPipe,
+  Req,
+  UseGuards,
+  Query,
+  DefaultValuePipe,
+} from '@nestjs/common';
 
 import { RegistrationService } from './registration.service';
 import { CreateRegistrationDto } from './dto/create-registration.dto';
@@ -20,10 +33,16 @@ export class RegistrationController {
 
 
 @Get()
-findAll(){
+findAll(
+  @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+  @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+) {
+  return this.service.findAll(page, limit);
+}
 
-return this.service.findAll();
-
+@Get('options')
+findFormOptions() {
+  return this.service.findFormOptions();
 }
 
 

@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadGatewayException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 import { CreateProductDto } from './dto/create-product.dto';
@@ -197,28 +201,41 @@ undefined
   }
 
   private async uploadImage(image: any): Promise<{ url: string; fileId: string }> {
-    const privateKey = process.env.IMAGEKIT_PRIVATE_KEY;
-    if (!privateKey) throw new Error('IMAGEKIT_PRIVATE_KEY chưa được cấu hình');
+    const privateKey = process.env.IMAGEKIT_PRIVATE_KEY?.trim();
+    if (!privateKey) {
+      throw new ServiceUnavailableException(
+        'Chưa cấu hình IMAGEKIT_PRIVATE_KEY trong apps/api/.env nên không thể tải ảnh lên.',
+      );
+    }
 
     const form = new FormData();
     form.append('file', new Blob([image.buffer], { type: image.mimetype }), image.originalname);
     form.append('fileName', `${Date.now()}-${image.originalname}`);
     form.append('folder', '/quan-ly-khi-tai/products');
 
-    const response = await fetch('https://upload.imagekit.io/api/v1/files/upload', {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${Buffer.from(`${privateKey}:`).toString('base64')}`,
-      },
-      body: form,
-    });
+    try {
+      const response = await fetch('https://upload.imagekit.io/api/v1/files/upload', {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${Buffer.from(`${privateKey}:`).toString('base64')}`,
+        },
+        body: form,
+      });
 
-    if (!response.ok) {
-      throw new Error(`ImageKit upload failed: ${await response.text()}`);
+      if (!response.ok) {
+        throw new BadGatewayException(
+          'ImageKit từ chối tải ảnh lên. Hãy kiểm tra IMAGEKIT_PRIVATE_KEY và cấu hình tài khoản ImageKit.',
+        );
+      }
+
+      const result = await response.json() as { url: string; fileId: string };
+      return { url: result.url, fileId: result.fileId };
+    } catch (error) {
+      if (error instanceof BadGatewayException) throw error;
+      throw new BadGatewayException(
+        'Không kết nối được ImageKit để tải ảnh lên. Hãy kiểm tra kết nối mạng của máy chủ API.',
+      );
     }
-
-    const result = await response.json() as { url: string; fileId: string };
-    return { url: result.url, fileId: result.fileId };
   }
 
 

@@ -8,22 +8,70 @@ export class RegistrationService {
 
   // danh sách cấp phát
 
-  findAll() {
-    return this.prisma.registration.findMany({
-      include: {
-        owner: true,
-
-        detail: {
-          include: {
-            product: true,
+  async findAll(page = 1, limit = 10) {
+    const currentPage = Math.max(1, page);
+    const pageSize = Math.min(100, Math.max(1, limit));
+    const [items, total] = await Promise.all([
+      this.prisma.registration.findMany({
+        select: {
+          id: true,
+          ownerId: true,
+          detailId: true,
+          registeredAt: true,
+          owner: {
+            select: {
+              id: true,
+              fullName: true,
+              rank: true,
+              position: true,
+              department: true,
+            },
+          },
+          detail: {
+            select: {
+              id: true,
+              productId: true,
+              serialNumber: true,
+              status: true,
+              accessory: true,
+              equipment: true,
+              militaryEquipment: true,
+              product: { select: { name: true } },
+            },
           },
         },
-      },
+        orderBy: { id: 'desc' },
+        skip: (currentPage - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.registration.count(),
+    ]);
 
-      orderBy: {
-        id: 'desc',
-      },
-    });
+    return { items, total, page: currentPage, pageSize };
+  }
+
+  async findFormOptions() {
+    const [owners, products, inventories] = await Promise.all([
+      this.prisma.owner.findMany({
+        select: { id: true, fullName: true, position: true },
+        orderBy: { id: 'desc' },
+      }),
+      this.prisma.product.findMany({
+        select: { id: true, name: true },
+      }),
+      this.prisma.productDetail.findMany({
+        where: { status: 'IN_STOCK' },
+        select: {
+          id: true,
+          productId: true,
+          serialNumber: true,
+          status: true,
+        },
+        orderBy: { id: 'desc' },
+      }),
+    ]);
+
+    return { owners, products, inventories };
   }
 
   // đăng ký cấp phát

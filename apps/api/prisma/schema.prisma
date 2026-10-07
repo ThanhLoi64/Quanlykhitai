@@ -26,6 +26,7 @@ model Tenant {
   id        Int      @id @default(autoincrement())
   name      String   @unique
   parentId  Int?
+  displayOrder Int   @default(0)
   parent    Tenant?  @relation("TenantTree", fields: [parentId], references: [id])
   children  Tenant[] @relation("TenantTree")
   users     User[]
