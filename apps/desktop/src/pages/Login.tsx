@@ -9,8 +9,10 @@ import {
   UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Dialog, DialogActions, DialogContent, DialogTitle } from "@mui/material";
 import api from "../api/api";
 import loginBg from "../assets/quandoi.avif";
+import ThemeToggle from "../components/ThemeToggle";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -18,6 +20,7 @@ export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [lockedModalOpen, setLockedModalOpen] = useState(false);
 
   async function login() {
     if (!username.trim() || !password.trim()) {
@@ -39,7 +42,13 @@ export default function Login() {
       toast.dismiss(toastId);
       toast.success("Đăng nhập thành công");
 
-      navigate("/dashboard");
+      navigate(
+        res.data.user.mustChangePassword
+          ? "/change-password"
+          : res.data.user.role === "SYSADMIN"
+            ? "/admin"
+            : "/dashboard",
+      );
     } catch (err: any) {
       toast.dismiss(toastId);
 
@@ -61,6 +70,14 @@ export default function Login() {
 
         case 401:
           toast.error("Sai tên đăng nhập hoặc mật khẩu.");
+          break;
+
+        case 410:
+          toast.error("Tài khoản đã hết hạn sử dụng.");
+          break;
+
+        case 423:
+          setLockedModalOpen(true);
           break;
 
         case 403:
@@ -87,16 +104,19 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen w-full overflow-hidden bg-slate-50 text-slate-900 md:flex-row">
-      <div className="relative z-10 flex w-full items-center justify-center bg-[#fffafa] px-4 py-6 sm:px-6 md:w-[42%] md:px-8 lg:px-10">
+    <div className="relative flex min-h-screen w-full overflow-hidden bg-slate-100 text-slate-900 md:flex-row">
+      <div className="absolute right-4 top-4 z-20">
+        <ThemeToggle />
+      </div>
+      <div className="relative z-10 flex w-full items-center justify-center bg-white px-4 py-6 sm:px-6 md:w-[42%] md:px-8 lg:px-10">
         <div className="w-full max-w-md">
           <div className="mb-10 flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#b42318] text-white shadow-[0_8px_20px_rgba(180,35,24,0.22)]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg">
               <Shield className="h-5 w-5" />
             </div>
 
             <div>
-              <p className="text-base font-extrabold tracking-[0.02em] text-[#b42318]">
+              <p className="text-base font-extrabold tracking-[0.02em] text-blue-600">
                 QUẢN LÝ KHÍ TÀI
               </p>
               <p className="mt-0.5 text-[11px] tracking-[0.5px] text-slate-500">
@@ -130,7 +150,7 @@ export default function Login() {
                   onChange={(e) => setUsername(e.target.value)}
                   autoComplete="username"
                   placeholder="Nhập tên đăng nhập"
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-4 text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#b42318] focus:outline-none focus:ring-2 focus:ring-[#b42318]/20"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-4 text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
                 />
               </div>
             </div>
@@ -156,7 +176,7 @@ export default function Login() {
                     }
                   }}
                   placeholder="Nhập mật khẩu"
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-11 text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#b42318] focus:outline-none focus:ring-2 focus:ring-[#b42318]/20"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-11 text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
                 />
 
                 <button
@@ -177,14 +197,14 @@ export default function Login() {
             <button
               type="button"
               onClick={login}
-              className="mt-1 flex h-[54px] w-full items-center justify-center rounded-2xl bg-[#b42318] text-base font-bold text-white shadow-[0_8px_20px_rgba(180,35,24,0.22)] transition hover:bg-[#8f1d14] hover:shadow-[0_10px_24px_rgba(180,35,24,0.28)]"
+              className="mt-1 flex h-[54px] w-full items-center justify-center rounded-2xl bg-blue-600 text-base font-bold text-white shadow-lg transition hover:bg-blue-700"
             >
               Đăng nhập
             </button>
           </div>
 
           <div className="mt-6 flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3.5">
-            <LockKeyhole className="mt-0.5 h-5 w-5 shrink-0 text-[#b42318]" />
+            <LockKeyhole className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
             <p className="text-xs leading-6 text-slate-500">
               Thông tin đăng nhập được bảo mật. Vui lòng không chia sẻ tài khoản cho người khác.
             </p>
@@ -213,6 +233,27 @@ export default function Login() {
           </p>
         </div>
       </div>
+      <Dialog
+        open={lockedModalOpen}
+        onClose={() => setLockedModalOpen(false)}
+        aria-labelledby="account-locked-title"
+      >
+        <DialogTitle id="account-locked-title">Tài khoản đã bị khóa</DialogTitle>
+        <DialogContent>
+          <p className="text-sm text-slate-600">
+            Vui lòng liên hệ quản trị viên để được hỗ trợ mở khóa tài khoản.
+          </p>
+        </DialogContent>
+        <DialogActions className="p-4">
+          <button
+            type="button"
+            onClick={() => setLockedModalOpen(false)}
+            className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+          >
+            Đóng
+          </button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 }

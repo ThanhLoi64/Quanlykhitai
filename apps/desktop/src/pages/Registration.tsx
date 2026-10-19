@@ -548,9 +548,9 @@ export default function Registration() {
                   gap: 3,
                   p: 2.5,
                   borderRadius: 3,
-                  border: "1px solid #dbeafe",
-                  background:
-                    "linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%)",
+                  border: 1,
+                  borderColor: "divider",
+                  bgcolor: "background.default",
                 }}
               >
                 <Avatar
@@ -603,8 +603,9 @@ export default function Registration() {
                   sx={{
                     p: 2,
                     borderRadius: 2,
-                    bgcolor: "grey.50",
-                    border: "1px solid #e5e7eb",
+                    bgcolor: "background.default",
+                    border: 1,
+                    borderColor: "divider",
                   }}
                 >
                   <Typography
@@ -622,8 +623,9 @@ export default function Registration() {
                   sx={{
                     p: 2,
                     borderRadius: 2,
-                    bgcolor: "grey.50",
-                    border: "1px solid #e5e7eb",
+                    bgcolor: "background.default",
+                    border: 1,
+                    borderColor: "divider",
                   }}
                 >
                   <Typography
@@ -641,8 +643,9 @@ export default function Registration() {
                   sx={{
                     p: 2,
                     borderRadius: 2,
-                    bgcolor: "grey.50",
-                    border: "1px solid #e5e7eb",
+                    bgcolor: "background.default",
+                    border: 1,
+                    borderColor: "divider",
                   }}
                 >
                   <Typography
@@ -662,8 +665,9 @@ export default function Registration() {
                   sx={{
                     p: 2,
                     borderRadius: 2,
-                    bgcolor: "grey.50",
-                    border: "1px solid #e5e7eb",
+                    bgcolor: "background.default",
+                    border: 1,
+                    borderColor: "divider",
                   }}
                 >
                   <Typography
@@ -693,8 +697,9 @@ export default function Registration() {
                 sx={{
                   p: 2.5,
                   borderRadius: 3,
-                  border: "1px solid #e5e7eb",
-                  bgcolor: "white",
+                  border: 1,
+                  borderColor: "divider",
+                  bgcolor: "background.paper",
                 }}
               >
                 <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
@@ -714,9 +719,9 @@ export default function Registration() {
                       sx={{
                         p: 2,
                         borderRadius: 2,
-                        bgcolor: "grey.50",
+                        bgcolor: "background.default",
                         border: "1px solid",
-                        borderColor: "grey.200",
+                        borderColor: "divider",
                       }}
                     >
                       <Typography
@@ -736,9 +741,9 @@ export default function Registration() {
                       sx={{
                         p: 2,
                         borderRadius: 2,
-                        bgcolor: "grey.50",
+                        bgcolor: "background.default",
                         border: "1px solid",
-                        borderColor: "grey.200",
+                        borderColor: "divider",
                       }}
                     >
                       <Typography
@@ -758,9 +763,9 @@ export default function Registration() {
                       sx={{
                         p: 2,
                         borderRadius: 2,
-                        bgcolor: "grey.50",
+                        bgcolor: "background.default",
                         border: "1px solid",
-                        borderColor: "grey.200",
+                        borderColor: "divider",
                       }}
                     >
                       <Typography
@@ -791,7 +796,7 @@ export default function Registration() {
       {/* TABLE */}
 
       <div className="mt-8 bg-white rounded-xl shadow overflow-hidden">
-        <Box sx={{ height: 550, bgcolor: "white", borderRadius: 2 }}>
+        <Box sx={{ height: 550, bgcolor: "background.paper", borderRadius: 2 }}>
           <DataGrid
             rows={rows}
             columns={columns}

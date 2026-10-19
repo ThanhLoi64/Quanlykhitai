@@ -212,7 +212,7 @@ export default function Warehouse() {
 
       <div className="bg-white rounded-xl shadow overflow-hidden">
         {tab === "list" ? (
-          <Box sx={{ height: 550, bgcolor: "white" }}>
+          <Box sx={{ height: 550, bgcolor: "background.paper" }}>
             <DataGrid
               rows={rows}
               columns={columns}

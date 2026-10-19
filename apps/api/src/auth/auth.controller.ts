@@ -21,14 +21,24 @@ export class AuthController {
   login(
     @Body() dto: LoginDto
   ) {
-
-    console.log("LOGIN CONTROLLER:", dto);
-
     return this.authService.login(
       dto.username,
       dto.password
     );
 
+  }
+
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  changePassword(
+    @Req() req: any,
+    @Body() body: { currentPassword?: unknown; newPassword?: unknown },
+  ) {
+    return this.authService.changePassword(
+      req.user.id,
+      body.currentPassword,
+      body.newPassword,
+    );
   }
 
   @Get('child-weapon-summary')

@@ -1,10 +1,247 @@
 @import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 
+:root {
+	color-scheme: light;
+	--color-primary: #1D4ED8;
+	--color-secondary: #0F172A;
+	--color-accent: #60A5FA;
+	--color-background: #F1F5F9;
+	--color-surface: #FFFFFF;
+	--color-text: #0F172A;
+	--color-muted: #475569;
+	--color-border: #CBD5E1;
+	--color-surface-muted: #F8FAFC;
+	--color-shadow: rgba(15, 23, 42, 0.12);
+	--color-chrome-background: var(--color-surface);
+	--color-chrome-text: var(--color-text);
+	--color-chrome-muted: var(--color-muted);
+	--color-chrome-border: var(--color-border);
+	--color-chrome-field: var(--color-surface-muted);
+	--color-chrome-hover: #E2E8F0;
+	--color-chrome-accent: var(--color-primary);
+}
+
+:root[data-theme="dark"] {
+	color-scheme: dark;
+	--color-primary: #60A5FA;
+	--color-secondary: #020617;
+	--color-accent: #93C5FD;
+	--color-background: #0F172A;
+	--color-surface: #1E293B;
+	--color-text: #F1F5F9;
+	--color-muted: #94A3B8;
+	--color-border: #334155;
+	--color-surface-muted: #273449;
+	--color-shadow: rgba(0, 0, 0, 0.36);
+	--color-chrome-background: var(--color-secondary);
+	--color-chrome-text: #F1F5F9;
+	--color-chrome-muted: #94A3B8;
+	--color-chrome-border: #334155;
+	--color-chrome-field: #1E293B;
+	--color-chrome-hover: rgba(255, 255, 255, 0.08);
+	--color-chrome-accent: var(--color-accent);
+}
+
 html,
 body,
 #root {
 	font-family: "Be Vietnam Pro", "Segoe UI", Arial, sans-serif;
+}
+
+body {
+	background-color: var(--color-background);
+	color: var(--color-text);
+}
+
+:root .bg-white {
+	background-color: var(--color-surface) !important;
+}
+
+:root .bg-slate-50,
+:root .bg-gray-50,
+:root .bg-slate-200 {
+	background-color: var(--color-surface-muted) !important;
+}
+
+:root .bg-slate-100,
+:root .bg-gray-100 {
+	background-color: var(--color-background) !important;
+}
+
+:root .text-slate-900,
+:root .text-slate-800,
+:root .text-gray-900,
+:root .text-gray-800 {
+	color: var(--color-text) !important;
+}
+
+:root .text-slate-700,
+:root .text-slate-600,
+:root .text-slate-500,
+:root .text-slate-400,
+:root .text-gray-700,
+:root .text-gray-600,
+:root .text-gray-500,
+:root .text-gray-400 {
+	color: var(--color-muted) !important;
+}
+
+:root .border-slate-100,
+:root .border-slate-200,
+:root .border-slate-300,
+:root .border-gray-100,
+:root .border-gray-200,
+:root .border-gray-300 {
+	border-color: var(--color-border) !important;
+}
+
+:root .bg-blue-600 {
+	background-color: var(--color-primary) !important;
+}
+
+:root .bg-cyan-300 {
+	background-color: var(--color-accent) !important;
+}
+
+:root .text-blue-600 {
+	color: var(--color-primary) !important;
+}
+
+:root .text-cyan-100,
+:root .text-cyan-300 {
+	color: var(--color-accent) !important;
+}
+
+:root .border-blue-600 {
+	border-color: var(--color-primary) !important;
+}
+
+:root .hover\:bg-blue-700:hover {
+	background-color: color-mix(in srgb, var(--color-primary) 85%, black) !important;
+}
+
+:root .hover\:bg-slate-50:hover,
+:root .hover\:bg-slate-100:hover,
+:root .hover\:bg-gray-50:hover {
+	background-color: var(--color-surface-muted) !important;
+}
+
+.theme-nav-active {
+	background-color: color-mix(in srgb, var(--color-primary) 10%, var(--color-chrome-background));
+	color: var(--color-primary);
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 20%, transparent);
+}
+
+.theme-nav-item {
+	color: var(--color-chrome-muted);
+}
+
+.theme-nav-item:hover {
+	background-color: var(--color-chrome-hover);
+	color: var(--color-chrome-text);
+}
+
+.theme-chrome {
+	background-color: var(--color-chrome-background);
+	color: var(--color-chrome-text);
+}
+
+.theme-chrome-divider {
+	border-color: var(--color-chrome-border) !important;
+}
+
+.theme-chrome-muted {
+	color: var(--color-chrome-muted) !important;
+}
+
+.theme-chrome-accent {
+	color: var(--color-chrome-accent) !important;
+}
+
+.theme-chrome-control {
+	border-color: var(--color-chrome-border);
+	color: var(--color-chrome-accent);
+}
+
+.theme-chrome-control:hover,
+.theme-chrome-profile:hover {
+	background-color: var(--color-chrome-hover);
+}
+
+.theme-chrome-field {
+	border-color: var(--color-chrome-border);
+	background-color: var(--color-chrome-field);
+}
+
+.theme-chrome-profile {
+	border: 1px solid var(--color-chrome-border);
+	background-color: color-mix(in srgb, var(--color-chrome-text) 5%, transparent);
+}
+
+.theme-chrome-avatar {
+	background-color: var(--color-chrome-field);
+	color: var(--color-chrome-accent);
+}
+
+.theme-switch {
+	position: relative;
+	width: 52px;
+	height: 30px;
+	flex: 0 0 auto;
+	padding: 0;
+	border: 1px solid var(--color-chrome-border);
+	border-radius: 999px;
+	background-color: var(--color-chrome-field);
+	color: var(--color-chrome-muted);
+	cursor: pointer;
+	transition: background-color 180ms ease, border-color 180ms ease;
+}
+
+.theme-switch[aria-checked="true"] {
+	border-color: var(--color-primary);
+	background-color: var(--color-primary);
+}
+
+.theme-switch:focus-visible {
+	outline: 2px solid var(--color-accent);
+	outline-offset: 2px;
+}
+
+.theme-switch-track-icon {
+	position: absolute;
+	top: 8px;
+	display: flex;
+	color: currentColor;
+	transition: opacity 180ms ease;
+}
+
+.theme-switch-sun {
+	left: 7px;
+}
+
+.theme-switch-moon {
+	right: 7px;
+}
+
+.theme-switch-thumb {
+	position: absolute;
+	top: 3px;
+	left: 3px;
+	display: flex;
+	width: 22px;
+	height: 22px;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	background-color: var(--color-surface);
+	color: var(--color-primary);
+	box-shadow: 0 1px 3px rgba(15, 23, 42, 0.28);
+	transition: transform 180ms ease;
+}
+
+.theme-switch[aria-checked="true"] .theme-switch-thumb {
+	transform: translateX(22px);
 }
 
 button {
@@ -51,7 +288,7 @@ textarea {
 
 .sidebar-scrollbar {
 	scrollbar-width: thin;
-	scrollbar-color: rgba(103, 232, 249, 0.38) transparent;
+	scrollbar-color: color-mix(in srgb, var(--color-accent) 38%, transparent) transparent;
 }
 
 .sidebar-scrollbar::-webkit-scrollbar {
@@ -65,12 +302,12 @@ textarea {
 .sidebar-scrollbar::-webkit-scrollbar-thumb {
 	border: 1px solid transparent;
 	border-radius: 999px;
-	background: rgba(100, 116, 139, 0.55);
+	background: color-mix(in srgb, var(--color-muted) 58%, transparent);
 	background-clip: padding-box;
 	transition: background 180ms ease;
 }
 
 .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
-	background: rgba(103, 232, 249, 0.58);
+	background: color-mix(in srgb, var(--color-accent) 58%, transparent);
 	background-clip: padding-box;
 }

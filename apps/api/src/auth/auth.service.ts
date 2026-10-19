@@ -1,4 +1,10 @@
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -16,6 +22,29 @@ constructor(
 ) {
 }
 
+private async recordLoginEvent(
+  userId: number | null,
+  username: string,
+  tenantId: number,
+  action: string,
+) {
+  try {
+    await this.prisma.runWithoutTenant(() =>
+      this.prisma.appLog.create({
+        data: {
+          userId,
+          username,
+          tenantId,
+          action,
+          detail: `Tài khoản ${username}`,
+        },
+      }),
+    );
+  } catch {
+    // Authentication must remain available if audit logging fails.
+  }
+}
+
 async login(
   username: string,
   password: string,
@@ -28,6 +57,7 @@ async login(
 
 
   if (!user) {
+    await this.recordLoginEvent(null, username, 1, 'Đăng nhập thất bại');
     throw new UnauthorizedException(
       'Sai tài khoản hoặc mật khẩu'
     );
@@ -41,10 +71,27 @@ async login(
 
 
   if (!checkPassword) {
+    await this.recordLoginEvent(user.id, user.username, user.tenantId, 'Đăng nhập thất bại');
     throw new UnauthorizedException(
       'Sai tài khoản hoặc mật khẩu'
     );
   }
+
+  if (!user.isActive) {
+    await this.recordLoginEvent(user.id, user.username, user.tenantId, 'Đăng nhập thất bại');
+    throw new HttpException('Tài khoản đã bị khóa', HttpStatus.LOCKED);
+  }
+
+  if (user.expiresAt && user.expiresAt <= new Date()) {
+    await this.recordLoginEvent(user.id, user.username, user.tenantId, 'Đăng nhập thất bại');
+    throw new HttpException('Tài khoản đã hết hạn sử dụng', HttpStatus.GONE);
+  }
+
+  await this.prisma.user.update({
+    where: { id: user.id },
+    data: { lastLoginAt: new Date() },
+  });
+  await this.recordLoginEvent(user.id, user.username, user.tenantId, 'Đăng nhập thành công');
 
 
   // dữ liệu đưa vào token
@@ -54,6 +101,7 @@ async login(
     username: user.username,
     role: user.role,
     tenantId: user.tenantId,
+    sessionVersion: user.sessionVersion,
   };
 
 
@@ -74,6 +122,7 @@ async login(
       fullName: user.fullName,
       role: user.role,
       tenantId: user.tenantId,
+      mustChangePassword: user.mustChangePassword,
     },
 
   };
@@ -208,9 +257,67 @@ async createChildAccount(user: { tenantId: number; role: string }, dto: CreateCh
         fullName: dto.fullName,
         role: childRole as any,
         tenantId: tenant.id,
+        mustChangePassword: true,
       },
-      select: { id: true, username: true, fullName: true, role: true, tenantId: true, isActive: true },
+      select: {
+        id: true,
+        username: true,
+        fullName: true,
+        role: true,
+        tenantId: true,
+        isActive: true,
+        mustChangePassword: true,
+      },
     });
+  });
+}
+
+async changePassword(
+  userId: number,
+  currentPassword: unknown,
+  newPassword: unknown,
+) {
+  if (typeof currentPassword !== 'string' || typeof newPassword !== 'string' || newPassword.length < 8 || newPassword.length > 128) {
+    throw new BadRequestException('Mật khẩu mới phải có từ 8 đến 128 ký tự');
+  }
+
+  return this.prisma.runWithoutTenant(async () => {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || !(await bcrypt.compare(currentPassword, user.password))) {
+      throw new UnauthorizedException('Mật khẩu hiện tại không chính xác');
+    }
+
+    const sessionVersion = user.sessionVersion + 1;
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        password: await bcrypt.hash(newPassword, 10),
+        mustChangePassword: false,
+        sessionVersion: { increment: 1 },
+      },
+    });
+    await this.recordLoginEvent(user.id, user.username, user.tenantId, 'Đổi mật khẩu');
+
+    const accessToken = await this.jwtService.signAsync({
+      sub: user.id,
+      userId: user.id,
+      username: user.username,
+      role: user.role,
+      tenantId: user.tenantId,
+      sessionVersion,
+    });
+
+    return {
+      accessToken,
+      user: {
+        id: user.id,
+        username: user.username,
+        fullName: user.fullName,
+        role: user.role,
+        tenantId: user.tenantId,
+        mustChangePassword: false,
+      },
+    };
   });
 }
 }
