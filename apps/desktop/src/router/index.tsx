@@ -10,6 +10,7 @@ import Products from "../pages/Products";
 import Categories from "../pages/Categories";
 import Log from "../pages/Log";
 import Layout from "../components/Layout";
+import AdminLayout from "../components/AdminLayout";
 import ProtectedRoute from "./ProtectedRoute";
 import ProductDetail from "../pages/ProductDetail";
 import Registration from "../pages/Registration";
@@ -64,9 +65,11 @@ return (
         <Route path="/about" element={<Information />} />
         <Route path="/child-accounts" element={<ChildAccounts />} />
         <Route path="/weapon-search" element={<WeaponSearch />} />
+      </Route>
+
+      <Route element={<AdminLayout />}>
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/admin/accounts" element={<AdminAccounts />} />
-
       </Route>
 
     </Route>

@@ -77,5 +77,36 @@ describe('AuthService', () => {
     expect(prisma.user.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ lastLoginAt: expect.any(Date) }) }),
     );
+    expect(prisma.appLog.create).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ action: 'Đăng nhập thành công' }),
+      }),
+    );
+  });
+
+  it('records successful logins for sysadmin accounts', async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      id: 1,
+      username: 'sysadmin',
+      password: passwordHash,
+      fullName: 'System Administrator',
+      role: 'SYSADMIN',
+      tenantId: 1,
+      isActive: true,
+      expiresAt: null,
+      sessionVersion: 1,
+      mustChangePassword: false,
+    });
+
+    await service.login('sysadmin', 'password');
+
+    expect(prisma.appLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          username: 'sysadmin',
+          action: 'Đăng nhập thành công',
+        }),
+      }),
+    );
   });
 });

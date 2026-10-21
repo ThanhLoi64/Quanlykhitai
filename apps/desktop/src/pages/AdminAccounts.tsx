@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import {
-  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
   KeyRound,
   LockKeyhole,
@@ -14,7 +15,7 @@ import {
   Users,
 } from "lucide-react";
 import { Dialog, DialogActions, DialogContent, DialogTitle } from "@mui/material";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import api from "../api/api";
 
@@ -30,6 +31,14 @@ type ManagedAccount = {
   lastActivityAt: string | null;
   tenantId: number;
   tenant: { name: string };
+};
+
+type AccountsPage = {
+  accounts: ManagedAccount[];
+  total: number;
+  page: number;
+  pageSize: number;
+  summary: { total: number; active: number; inactive: number; online: number; offline: number };
 };
 
 type Tenant = { id: number; name: string; parentId: number | null };
@@ -63,13 +72,22 @@ const emptyForm: AccountForm = {
 };
 
 const roles = ["SYSADMIN", "ADMIN", "STAFF"];
+const onlineWindowMs = 2 * 60 * 1000;
 
-async function fetchAdminAccounts() {
-  const [accountsResponse, tenantsResponse] = await Promise.all([
-    api.get<ManagedAccount[]>("/admin/accounts"),
-    api.get<Tenant[]>("/admin/tenants"),
-  ]);
-  return { accounts: accountsResponse.data, tenants: tenantsResponse.data };
+async function fetchAdminAccounts(
+  page: number,
+  filters: { search: string; role: string; status: string; presence: string },
+) {
+  const response = await api.get<AccountsPage>("/admin/accounts", {
+    params: {
+      page,
+      search: filters.search || undefined,
+      role: filters.role === "all" ? undefined : filters.role,
+      status: filters.status === "all" ? undefined : filters.status,
+      presence: filters.presence === "all" ? undefined : filters.presence,
+    },
+  });
+  return response.data;
 }
 
 function localDateTime(value: string | null) {
@@ -81,6 +99,15 @@ function localDateTime(value: string | null) {
 
 function formatDate(value: string | null) {
   return value ? new Date(value).toLocaleString("vi-VN") : "Chưa ghi nhận";
+}
+
+function isAccountOnline(account: ManagedAccount, now: number) {
+  if (!account.isActive || (account.expiresAt && Date.parse(account.expiresAt) <= now)) {
+    return false;
+  }
+  if (!account.lastActivityAt) return false;
+  const lastActivity = Date.parse(account.lastActivityAt);
+  return Number.isFinite(lastActivity) && now - lastActivity <= onlineWindowMs;
 }
 
 function errorMessage(error: unknown, fallback: string) {
@@ -99,12 +126,17 @@ export default function AdminAccounts() {
     }
   }, []);
   const [accounts, setAccounts] = useState<ManagedAccount[]>([]);
+  const [totalAccounts, setTotalAccounts] = useState(0);
+  const [summary, setSummary] = useState<AccountsPage["summary"]>({ total: 0, active: 0, inactive: 0, online: 0, offline: 0 });
+  const [page, setPage] = useState(1);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [presenceFilter, setPresenceFilter] = useState("all");
+  const [presenceNow, setPresenceNow] = useState(0);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<ManagedAccount | null>(null);
   const [form, setForm] = useState<AccountForm>(emptyForm);
@@ -114,32 +146,34 @@ export default function AdminAccounts() {
   const [history, setHistory] = useState<LoginEvent[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
-      const result = await fetchAdminAccounts();
+      const result = await fetchAdminAccounts(page, {
+        search: search.trim(),
+        role: roleFilter,
+        status: statusFilter,
+        presence: presenceFilter,
+      });
       setAccounts(result.accounts);
-      setTenants(result.tenants);
+      setTotalAccounts(result.total);
+      setSummary(result.summary);
+      setPresenceNow(Date.now());
     } catch (error) {
       toast.error(errorMessage(error, "Không thể tải danh sách tài khoản"));
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
-  };
+  }, [page, presenceFilter, roleFilter, search, statusFilter]);
 
   useEffect(() => {
     let active = true;
-    fetchAdminAccounts()
-      .then((result) => {
-        if (!active) return;
-        setAccounts(result.accounts);
-        setTenants(result.tenants);
+    api.get<Tenant[]>("/admin/tenants")
+      .then((response) => {
+        if (active) setTenants(response.data);
       })
       .catch((error: unknown) => {
-        if (active) toast.error(errorMessage(error, "Không thể tải danh sách tài khoản"));
-      })
-      .finally(() => {
-        if (active) setLoading(false);
+        if (active) toast.error(errorMessage(error, "Không thể tải danh sách đơn vị"));
       });
 
     return () => {
@@ -147,19 +181,14 @@ export default function AdminAccounts() {
     };
   }, []);
 
-  const filteredAccounts = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase("vi");
-    return accounts.filter((account) => {
-      const matchesSearch = !query ||
-        `${account.username} ${account.fullName} ${account.tenant.name}`
-          .toLocaleLowerCase("vi")
-          .includes(query);
-      const matchesRole = roleFilter === "all" || account.role === roleFilter;
-      const matchesStatus = statusFilter === "all" ||
-        (statusFilter === "active" ? account.isActive : !account.isActive);
-      return matchesSearch && matchesRole && matchesStatus;
-    });
-  }, [accounts, roleFilter, search, statusFilter]);
+  useEffect(() => {
+    const initialLoadId = window.setTimeout(() => void loadData(), 0);
+    const intervalId = window.setInterval(() => void loadData(false), 30_000);
+    return () => {
+      window.clearTimeout(initialLoadId);
+      window.clearInterval(intervalId);
+    };
+  }, [loadData]);
 
   const openCreate = () => {
     setEditing(null);
@@ -301,13 +330,14 @@ export default function AdminAccounts() {
 
   if (currentUser?.role !== "SYSADMIN") return <Navigate to="/dashboard" replace />;
 
+  const totalPages = Math.max(1, Math.ceil(totalAccounts / 10));
+  const firstAccount = totalAccounts === 0 ? 0 : (page - 1) * 10 + 1;
+  const lastAccount = Math.min(page * 10, totalAccounts);
+
   return (
     <div className="space-y-6 py-6">
       <header className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <Link to="/admin" className="mb-3 inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-900">
-            <ArrowLeft size={16} /> Tổng quan quản trị
-          </Link>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-700">Quản trị hệ thống</p>
           <h1 className="mt-1 text-2xl font-bold text-slate-900">Tài khoản toàn hệ thống</h1>
           <p className="mt-1 text-sm text-slate-500">Quản lý quyền truy cập, đơn vị, mật khẩu và phiên đăng nhập.</p>
@@ -322,18 +352,26 @@ export default function AdminAccounts() {
         </div>
       </header>
 
-      <section className="grid gap-3 sm:grid-cols-3" aria-label="Tổng quan tài khoản">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5" aria-label="Tổng quan tài khoản">
         <div className="rounded-lg border border-slate-200 bg-white p-4">
           <p className="text-sm text-slate-500">Tổng tài khoản</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900">{accounts.length.toLocaleString("vi-VN")}</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900">{summary.total.toLocaleString("vi-VN")}</p>
         </div>
         <div className="rounded-lg border border-slate-200 bg-white p-4">
           <p className="text-sm text-slate-500">Đang hoạt động</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-700">{accounts.filter((account) => account.isActive).length.toLocaleString("vi-VN")}</p>
+          <p className="mt-1 text-2xl font-bold text-emerald-700">{summary.active.toLocaleString("vi-VN")}</p>
         </div>
         <div className="rounded-lg border border-slate-200 bg-white p-4">
           <p className="text-sm text-slate-500">Đang khóa / vô hiệu hóa</p>
-          <p className="mt-1 text-2xl font-bold text-rose-700">{accounts.filter((account) => !account.isActive).length.toLocaleString("vi-VN")}</p>
+          <p className="mt-1 text-2xl font-bold text-rose-700">{summary.inactive.toLocaleString("vi-VN")}</p>
+        </div>
+        <div className="rounded-lg border border-slate-200 bg-white p-4">
+          <p className="text-sm text-slate-500">Đang online</p>
+          <p className="mt-1 text-2xl font-bold text-emerald-700">{summary.online.toLocaleString("vi-VN")}</p>
+        </div>
+        <div className="rounded-lg border border-slate-200 bg-white p-4">
+          <p className="text-sm text-slate-500">Đang offline</p>
+          <p className="mt-1 text-2xl font-bold text-slate-600">{summary.offline.toLocaleString("vi-VN")}</p>
         </div>
       </section>
 
@@ -341,17 +379,22 @@ export default function AdminAccounts() {
         <div className="flex flex-wrap gap-3 border-b border-slate-200 p-4">
           <label className="flex min-w-56 flex-1 items-center gap-2 rounded-lg border border-slate-300 px-3">
             <Search size={17} className="text-slate-400" />
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm tên, tài khoản, đơn vị" aria-label="Tìm tài khoản" className="h-10 min-w-0 flex-1 bg-transparent text-sm outline-none" />
+            <input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Tìm tên, tài khoản, đơn vị" aria-label="Tìm tài khoản" className="h-10 min-w-0 flex-1 bg-transparent text-sm outline-none" />
           </label>
-          <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} aria-label="Lọc theo vai trò" className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm">
+          <select value={roleFilter} onChange={(event) => { setRoleFilter(event.target.value); setPage(1); }} aria-label="Lọc theo vai trò" className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm">
             <option value="all">Tất cả vai trò</option>
             {roles.map((role) => <option key={role} value={role}>{role}</option>)}
             <option value="USER">USER</option>
           </select>
-          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Lọc theo trạng thái" className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm">
-            <option value="all">Tất cả trạng thái</option>
-            <option value="active">Hoạt động</option>
+          <select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }} aria-label="Lọc theo tình trạng tài khoản" className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm">
+            <option value="all">Mọi tình trạng tài khoản</option>
+            <option value="active">Được phép đăng nhập</option>
             <option value="inactive">Đã khóa</option>
+          </select>
+          <select value={presenceFilter} onChange={(event) => { setPresenceFilter(event.target.value); setPage(1); }} aria-label="Lọc online hoặc offline" className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm">
+            <option value="all">Online và offline</option>
+            <option value="online">Đang online</option>
+            <option value="offline">Đang offline</option>
           </select>
         </div>
         <div className="overflow-x-auto">
@@ -360,7 +403,8 @@ export default function AdminAccounts() {
               <tr>
                 <th className="px-4 py-3 font-semibold">Tài khoản</th>
                 <th className="px-4 py-3 font-semibold">Vai trò / đơn vị</th>
-                <th className="px-4 py-3 font-semibold">Trạng thái</th>
+                {/* <th className="px-4 py-3 font-semibold">Trạng thái</th> */}
+                <th className="px-4 py-3 font-semibold">Trực tuyến</th>
                 <th className="px-4 py-3 font-semibold">Đăng nhập gần nhất</th>
                 <th className="px-4 py-3 font-semibold">Hoạt động gần nhất</th>
                 <th className="px-4 py-3 font-semibold">Thời hạn</th>
@@ -368,7 +412,7 @@ export default function AdminAccounts() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredAccounts.map((account) => (
+              {accounts.map((account) => (
                 <tr key={account.id} className="align-top hover:bg-slate-50/70">
                   <td className="px-4 py-4">
                     <p className="font-semibold text-slate-900">{account.fullName}</p>
@@ -378,13 +422,19 @@ export default function AdminAccounts() {
                     <p className="font-semibold text-slate-700">{account.role}</p>
                     <p className="mt-1 text-xs text-slate-500">{account.tenant.name}</p>
                   </td>
-                  <td className="px-4 py-4">
+                  {/* <td className="px-4 py-4">
                     <div className="flex flex-col items-start gap-1.5">
                       <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${account.isActive ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-800"}`}>
                         {account.isActive ? "Hoạt động" : "Đã khóa"}
                       </span>
                       {account.mustChangePassword && <span className="text-xs font-medium text-amber-700">Cần đổi mật khẩu</span>}
                     </div>
+                  </td> */}
+                  <td className="px-4 py-4">
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${isAccountOnline(account, presenceNow) ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${isAccountOnline(account, presenceNow) ? "bg-emerald-500" : "bg-slate-400"}`} />
+                      {isAccountOnline(account, presenceNow) ? "Online" : "Offline"}
+                    </span>
                   </td>
                   <td className="px-4 py-4 text-xs text-slate-600">{formatDate(account.lastLoginAt)}</td>
                   <td className="px-4 py-4 text-xs text-slate-600">{formatDate(account.lastActivityAt)}</td>
@@ -392,7 +442,7 @@ export default function AdminAccounts() {
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
                       <button type="button" onClick={() => openEdit(account)} title="Sửa tài khoản" aria-label={`Sửa ${account.username}`} className="rounded-md p-2 text-slate-600 hover:bg-slate-100 hover:text-blue-700"><Pencil size={17} /></button>
-                      <button type="button" onClick={() => void toggleActive(account)} title={account.isActive ? "Khóa tài khoản" : "Mở khóa tài khoản"} aria-label={`${account.isActive ? "Khóa" : "Mở khóa"} ${account.username}`} className="rounded-md p-2 text-slate-600 hover:bg-slate-100 hover:text-amber-700">{account.isActive ? <LockKeyhole size={17} /> : <UnlockKeyhole size={17} />}</button>
+                      <button type="button" onClick={() => void toggleActive(account)} title={account.isActive ? "Khóa tài khoản" : "Mở khóa tài khoản"} aria-label={`${account.isActive ? "Khóa" : "Mở khóa"} ${account.username}`} className={`rounded-md p-2 ${account.isActive ? "text-slate-600 hover:bg-slate-100 hover:text-amber-700" : "text-rose-700 hover:bg-rose-50"}`}>{account.isActive ? <UnlockKeyhole size={17} /> : <LockKeyhole size={17} />}</button>
                       <button type="button" onClick={() => { setPasswordTarget(account); setNewPassword(""); }} title="Đặt lại mật khẩu" aria-label={`Đặt lại mật khẩu ${account.username}`} className="rounded-md p-2 text-slate-600 hover:bg-slate-100 hover:text-blue-700"><KeyRound size={17} /></button>
                       <button type="button" onClick={() => void showHistory(account)} title="Lịch sử đăng nhập" aria-label={`Lịch sử đăng nhập ${account.username}`} className="rounded-md p-2 text-slate-600 hover:bg-slate-100 hover:text-blue-700"><Clock3 size={17} /></button>
                       <button type="button" onClick={() => void revokeSessions(account)} title="Buộc đăng xuất mọi nơi" aria-label={`Thu hồi phiên ${account.username}`} className="rounded-md p-2 text-slate-600 hover:bg-slate-100 hover:text-rose-700"><LogOut size={17} /></button>
@@ -400,17 +450,44 @@ export default function AdminAccounts() {
                   </td>
                 </tr>
               ))}
-              {!loading && filteredAccounts.length === 0 && (
-                <tr><td colSpan={7} className="px-4 py-12 text-center text-sm text-slate-500">Không tìm thấy tài khoản phù hợp.</td></tr>
+              {!loading && accounts.length === 0 && (
+                <tr><td colSpan={8} className="px-4 py-12 text-center text-sm text-slate-500">Không tìm thấy tài khoản phù hợp.</td></tr>
               )}
               {loading && (
-                <tr><td colSpan={7} className="px-4 py-12 text-center text-sm text-slate-500">Đang tải danh sách tài khoản...</td></tr>
+                <tr><td colSpan={8} className="px-4 py-12 text-center text-sm text-slate-500">Đang tải danh sách tài khoản...</td></tr>
               )}
             </tbody>
           </table>
         </div>
-        <div className="border-t border-slate-100 px-4 py-3 text-xs text-slate-500">
-          Hiển thị {filteredAccounts.length.toLocaleString("vi-VN")} / {accounts.length.toLocaleString("vi-VN")} tài khoản
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-4 py-3">
+          <p className="text-xs text-slate-500">
+            Hiển thị {firstAccount.toLocaleString("vi-VN")}–{lastAccount.toLocaleString("vi-VN")} / {totalAccounts.toLocaleString("vi-VN")} tài khoản
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+              disabled={page <= 1 || loading}
+              aria-label="Trang trước"
+              title="Trang trước"
+              className="flex h-9 w-9 items-center justify-center rounded border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <span className="min-w-24 text-center text-xs font-medium text-slate-600">
+              Trang {page} / {totalPages}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+              disabled={page >= totalPages || loading}
+              aria-label="Trang sau"
+              title="Trang sau"
+              className="flex h-9 w-9 items-center justify-center rounded border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
         </div>
       </section>
 

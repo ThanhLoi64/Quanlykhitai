@@ -380,12 +380,6 @@ export default function Layout() {
               {!collapsed && <span>Tài khoản cấp dưới</span>}
             </NavLink>
           )}
-          {user?.role === "SYSADMIN" && (
-            <NavLink to="/admin/accounts" className={menuClass}>
-              <Users size={navIconSize} />
-              {!collapsed && <span>Quản lý tài khoản</span>}
-            </NavLink>
-          )}
           {/* <NavLink to="/about" className={menuClass}>
             <Info size={20} />
             {!collapsed && <span>Thông tin hệ thống</span>}

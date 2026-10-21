@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 const manageableRoles = ['SYSADMIN', 'ADMIN', 'STAFF'] as const;
@@ -25,26 +26,92 @@ export class AdminAccountsService {
     );
   }
 
-  listAccounts() {
+  listAccounts(
+    page: number,
+    filters: { search?: string; role?: string; status?: string; presence?: string },
+  ) {
     return this.prisma.runWithoutTenant(async () => {
-      const accounts = await this.prisma.user.findMany({
-        select: {
-          id: true,
-          username: true,
-          fullName: true,
-          role: true,
+      const now = new Date();
+      const onlineSince = new Date(now.getTime() - 2 * 60 * 1000);
+      const conditions: Prisma.UserWhereInput[] = [];
+      const search = filters.search?.trim();
+
+      if (search) {
+        conditions.push({
+          OR: [
+            { username: { contains: search, mode: 'insensitive' } },
+            { fullName: { contains: search, mode: 'insensitive' } },
+            { tenant: { is: { name: { contains: search, mode: 'insensitive' } } } },
+          ],
+        });
+      }
+      if (filters.role) conditions.push({ role: filters.role as Prisma.UserWhereInput['role'] });
+      if (filters.status === 'active') conditions.push({ isActive: true });
+      if (filters.status === 'inactive') conditions.push({ isActive: false });
+      if (filters.presence === 'online') {
+        conditions.push({
           isActive: true,
-          mustChangePassword: true,
-          expiresAt: true,
-          lastLoginAt: true,
-          lastActivityAt: true,
-          createdAt: true,
-          tenantId: true,
-          tenant: { select: { name: true } },
+          lastActivityAt: { gte: onlineSince },
+          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        });
+      }
+      if (filters.presence === 'offline') {
+        conditions.push({
+          OR: [
+            { isActive: false },
+            { expiresAt: { lte: now } },
+            { lastActivityAt: null },
+            { lastActivityAt: { lt: onlineSince } },
+          ],
+        });
+      }
+
+      const where: Prisma.UserWhereInput = conditions.length ? { AND: conditions } : {};
+      const onlineWhere: Prisma.UserWhereInput = {
+        isActive: true,
+        lastActivityAt: { gte: onlineSince },
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      };
+      const [total, allAccounts, activeAccounts, onlineAccounts, accounts] = await Promise.all([
+        this.prisma.user.count({ where }),
+        this.prisma.user.count(),
+        this.prisma.user.count({ where: { isActive: true } }),
+        this.prisma.user.count({ where: onlineWhere }),
+        this.prisma.user.findMany({
+          where,
+          skip: (page - 1) * 10,
+          take: 10,
+          select: {
+            id: true,
+            username: true,
+            fullName: true,
+            role: true,
+            isActive: true,
+            mustChangePassword: true,
+            expiresAt: true,
+            lastLoginAt: true,
+            lastActivityAt: true,
+            createdAt: true,
+            tenantId: true,
+            tenant: { select: { name: true } },
+          },
+          orderBy: [{ role: 'asc' }, { username: 'asc' }],
+        }),
+      ]);
+
+      return {
+        accounts,
+        total,
+        page,
+        pageSize: 10,
+        summary: {
+          total: allAccounts,
+          active: activeAccounts,
+          inactive: allAccounts - activeAccounts,
+          online: onlineAccounts,
+          offline: allAccounts - onlineAccounts,
         },
-        orderBy: [{ role: 'asc' }, { username: 'asc' }],
-      });
-      return accounts;
+      };
     });
   }
 

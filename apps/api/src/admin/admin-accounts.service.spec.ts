@@ -42,18 +42,23 @@ describe('AdminAccountsService', () => {
     expect(prisma.user.update).not.toHaveBeenCalled();
   });
 
-  it('loads every account before leaving the unscoped tenant context', async () => {
-    const allAccounts = Array.from({ length: 10 }, (_, index) => ({ id: index + 1 }));
+  it('returns at most ten accounts for a page and global summary counts', async () => {
+    const pageAccounts = Array.from({ length: 10 }, (_, index) => ({ id: index + 1 }));
     prisma.user.findMany.mockImplementation(() => ({
-      then(resolve: (accounts: typeof allAccounts) => unknown) {
-        resolve(tenantStorage.getStore() === null ? allAccounts : allAccounts.slice(0, 1));
+      then(resolve: (accounts: typeof pageAccounts) => unknown) {
+        resolve(tenantStorage.getStore() === null ? pageAccounts : pageAccounts.slice(0, 1));
       },
     }));
+    prisma.user.count.mockResolvedValue(12);
     tenantStorage.enterWith(1);
 
-    const accounts = await service.listAccounts();
+    const result = await service.listAccounts(2, {});
 
-    expect(accounts).toHaveLength(10);
+    expect(result.accounts).toHaveLength(10);
+    expect(result.total).toBe(12);
+    expect(result.page).toBe(2);
+    expect(result.pageSize).toBe(10);
+    expect(prisma.user.findMany).toHaveBeenCalledWith(expect.objectContaining({ skip: 10, take: 10 }));
   });
 
   it('resets a password, requires a change, and revokes existing sessions', async () => {

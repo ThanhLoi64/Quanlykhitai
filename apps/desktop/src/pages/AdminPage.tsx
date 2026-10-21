@@ -17,6 +17,15 @@ import {
     XCircle,
 } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
+import {
+    Bar,
+    BarChart,
+    CartesianGrid,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis,
+} from "recharts";
 import api from "../api/api";
 
 type ActivityEntry = {
@@ -41,6 +50,7 @@ type AdminDashboardData = {
         database: string;
         databaseSizeBytes: string | null;
         databaseSizeLabel: string | null;
+        databaseTables: Array<{ tableName: string; bytes: string; pretty: string }>;
     };
     recentActivity: ActivityEntry[];
     securityEvents: ActivityEntry[];
@@ -49,8 +59,20 @@ type AdminDashboardData = {
 const errorPattern = /error|failed|lỗi|thất bại|không thành công/i;
 
 async function fetchAdminDashboard() {
+    const startedAt = performance.now();
     const response = await api.get<AdminDashboardData>("/admin/dashboard");
-    return response.data;
+    return {
+        data: response.data,
+        responseTimeMs: Math.round(performance.now() - startedAt),
+    };
+}
+
+function formatBytes(value: number) {
+    if (!Number.isFinite(value) || value < 0) return "Chưa xác định";
+    if (value === 0) return "0 B";
+    const units = ["B", "KB", "MB", "GB", "TB"];
+    const unitIndex = Math.min(Math.floor(Math.log(value) / Math.log(1024)), units.length - 1);
+    return `${(value / 1024 ** unitIndex).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} ${units[unitIndex]}`;
 }
 
 function Metric({
@@ -156,15 +178,19 @@ export default function AdminPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+    const [apiResponseMs, setApiResponseMs] = useState<number | null>(null);
 
     const loadDashboard = async () => {
         setLoading(true);
         setError("");
         try {
-            setData(await fetchAdminDashboard());
+            const result = await fetchAdminDashboard();
+            setData(result.data);
+            setApiResponseMs(result.responseTimeMs);
             setUpdatedAt(new Date());
         } catch {
             setError("Không thể tải dữ liệu quản trị. Vui lòng thử tải lại.");
+            setApiResponseMs(null);
         } finally {
             setLoading(false);
         }
@@ -173,13 +199,17 @@ export default function AdminPage() {
     useEffect(() => {
         let active = true;
         fetchAdminDashboard()
-            .then((dashboard) => {
+            .then((result) => {
                 if (!active) return;
-                setData(dashboard);
+                setData(result.data);
+                setApiResponseMs(result.responseTimeMs);
                 setUpdatedAt(new Date());
             })
             .catch(() => {
-                if (active) setError("Không thể tải dữ liệu quản trị. Vui lòng thử tải lại.");
+                if (active) {
+                    setError("Không thể tải dữ liệu quản trị. Vui lòng thử tải lại.");
+                    setApiResponseMs(null);
+                }
             })
             .finally(() => {
                 if (active) setLoading(false);
@@ -215,6 +245,10 @@ export default function AdminPage() {
     ];
     const securityEvents = data?.securityEvents ?? [];
     const databaseSize = data?.system.databaseSizeLabel ?? "Chưa xác định";
+    const databaseTables = (data?.system.databaseTables ?? []).map((table) => ({
+        ...table,
+        bytes: Number(table.bytes),
+    }));
 
     return (
         <div className="space-y-6 py-6">
@@ -291,6 +325,15 @@ export default function AdminPage() {
                         detail="Dịch vụ quản lý yêu cầu"
                         healthy={data ? data.system.api === "online" : null}
                     />
+                    <div className="flex items-center justify-between gap-3 border-b border-slate-100 py-3">
+                        <div>
+                            <p className="text-sm font-semibold text-slate-800">Thời gian phản hồi API</p>
+                            <p className="text-xs text-slate-500">Đo từ giao diện đến endpoint dashboard</p>
+                        </div>
+                        <span className="shrink-0 text-lg font-bold tabular-nums text-slate-900">
+                            {apiResponseMs === null ? "--" : `${apiResponseMs} ms`}
+                        </span>
+                    </div>
                     <SystemStatus
                         icon={Database}
                         label="PostgreSQL"
@@ -317,6 +360,56 @@ export default function AdminPage() {
                         />
                     </div>
                 </div>
+            </section>
+
+            <section className="rounded-xl border border-slate-200 bg-white px-5 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 py-4">
+                    <div className="flex items-center gap-2">
+                        <Database size={18} className="text-cyan-700" />
+                        <h2 className="font-semibold text-slate-900">Dung lượng từng bảng</h2>
+                    </div>
+                    <p className="text-xs text-slate-500">Bao gồm dữ liệu, index và TOAST</p>
+                </div>
+                {databaseTables.length ? (
+                    <div className="max-h-120 overflow-y-auto py-4">
+                        <div style={{ height: Math.max(240, databaseTables.length * 36) }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart
+                                    data={databaseTables}
+                                    layout="vertical"
+                                    margin={{ top: 4, right: 32, bottom: 4, left: 8 }}
+                                >
+                                    <CartesianGrid horizontal={false} stroke="#e2e8f0" />
+                                    <XAxis
+                                        type="number"
+                                        tickFormatter={(value: number) => formatBytes(value)}
+                                        tick={{ fontSize: 11 }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                    />
+                                    <YAxis
+                                        type="category"
+                                        dataKey="tableName"
+                                        width={150}
+                                        interval={0}
+                                        tick={{ fontSize: 11, fill: "#475569" }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                    />
+                                    <Tooltip
+                                        formatter={(value) => [formatBytes(Number(value)), "Dung lượng"]}
+                                        contentStyle={{ borderRadius: 6, borderColor: "#cbd5e1" }}
+                                    />
+                                    <Bar dataKey="bytes" fill="#0891b2" radius={[0, 4, 4, 0]} barSize={18} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                ) : (
+                    <p className="py-6 text-sm text-slate-500">
+                        {loading ? "Đang tải thống kê bảng..." : "Chưa có dữ liệu dung lượng bảng."}
+                    </p>
+                )}
             </section>
 
             <section className="grid gap-5 lg:grid-cols-2">

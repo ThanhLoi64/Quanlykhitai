@@ -91,7 +91,9 @@ async login(
     where: { id: user.id },
     data: { lastLoginAt: new Date() },
   });
-  await this.recordLoginEvent(user.id, user.username, user.tenantId, 'Đăng nhập thành công');
+  if (user.role === 'SYSADMIN') {
+    await this.recordLoginEvent(user.id, user.username, user.tenantId, 'Đăng nhập thành công');
+  }
 
 
   // dữ liệu đưa vào token

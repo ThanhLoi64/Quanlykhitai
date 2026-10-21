@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -28,8 +29,19 @@ export class AdminController {
   ) {}
 
   @Get('accounts')
-  listAccounts() {
-    return this.accounts.listAccounts();
+  listAccounts(
+    @Query('page') page?: string,
+    @Query('search') search?: string,
+    @Query('role') role?: string,
+    @Query('status') status?: string,
+    @Query('presence') presence?: string,
+  ) {
+    return this.accounts.listAccounts(this.parsePage(page), {
+      search: search?.slice(0, 100),
+      role: role && ['SYSADMIN', 'ADMIN', 'STAFF', 'USER'].includes(role) ? role : undefined,
+      status: status === 'active' || status === 'inactive' ? status : undefined,
+      presence: presence === 'online' || presence === 'offline' ? presence : undefined,
+    });
   }
 
   @Get('tenants')
@@ -74,13 +86,23 @@ export class AdminController {
   getDashboard() {
     return this.prisma.runWithoutTenant(async () => {
       let database: Array<{ bytes: string; pretty: string }>;
+      let databaseTables: Array<{ tableName: string; bytes: string; pretty: string }>;
       try {
-        database = await this.prisma.$queryRaw<
-          Array<{ bytes: string; pretty: string }>
-        >`
-          SELECT pg_database_size(current_database())::text AS "bytes",
-                 pg_size_pretty(pg_database_size(current_database())) AS "pretty"
-        `;
+        [database, databaseTables] = await Promise.all([
+          this.prisma.$queryRaw<Array<{ bytes: string; pretty: string }>>`
+            SELECT pg_database_size(current_database())::text AS "bytes",
+                   pg_size_pretty(pg_database_size(current_database())) AS "pretty"
+          `,
+          this.prisma.$queryRaw<Array<{ tableName: string; bytes: string; pretty: string }>>`
+            SELECT c.relname AS "tableName",
+                   pg_total_relation_size(c.oid)::text AS "bytes",
+                   pg_size_pretty(pg_total_relation_size(c.oid)) AS "pretty"
+            FROM pg_catalog.pg_class c
+            JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+            WHERE n.nspname = 'public' AND c.relkind IN ('r', 'p')
+            ORDER BY pg_total_relation_size(c.oid) DESC
+          `,
+        ]);
       } catch {
         return {
           metrics: {
@@ -96,6 +118,7 @@ export class AdminController {
             database: 'disconnected',
             databaseSizeBytes: null,
             databaseSizeLabel: null,
+            databaseTables: [],
           },
           recentActivity: [],
         };
@@ -144,6 +167,7 @@ export class AdminController {
           database: 'connected',
           databaseSizeBytes: database[0]?.bytes ?? null,
           databaseSizeLabel: database[0]?.pretty ?? null,
+          databaseTables,
         },
         recentActivity,
         securityEvents,
@@ -157,5 +181,13 @@ export class AdminController {
       throw new BadRequestException('Mã tài khoản không hợp lệ');
     }
     return id;
+  }
+
+  private parsePage(value?: string) {
+    const page = value === undefined ? 1 : Number(value);
+    if (!Number.isSafeInteger(page) || page < 1) {
+      throw new BadRequestException('Số trang không hợp lệ');
+    }
+    return page;
   }
 }
