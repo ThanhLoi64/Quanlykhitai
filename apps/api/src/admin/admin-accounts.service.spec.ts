@@ -15,9 +15,19 @@ describe('AdminAccountsService', () => {
       user: {
         findUnique: jest.fn(),
         findMany: jest.fn(),
+        create: jest.fn(),
         update: jest.fn().mockResolvedValue({}),
         count: jest.fn(),
       },
+      tenant: {
+        create: jest.fn(),
+      },
+      $transaction: jest.fn((callback: (transaction: any) => unknown) =>
+        callback({
+          tenant: { create: prisma.tenant.create },
+          user: { create: prisma.user.create },
+        }),
+      ),
       appLog: { create: jest.fn().mockResolvedValue({}) },
     };
     service = new AdminAccountsService(prisma);
@@ -77,5 +87,41 @@ describe('AdminAccountsService', () => {
     });
     expect(update.data.password).not.toBe('initial-password');
     expect(await bcrypt.compare('initial-password', update.data.password)).toBe(true);
+  });
+
+  it('creates a new child tenant and assigns it to each new account', async () => {
+    prisma.user.findUnique.mockResolvedValue(null);
+    prisma.tenant.create.mockResolvedValue({ id: 42 });
+    prisma.user.create.mockResolvedValue({
+      id: 3,
+      username: 'new-admin',
+      fullName: 'New Admin',
+      role: 'ADMIN',
+    });
+
+    const created = await service.createAccount(
+      { id: 1, username: 'root', tenantId: 1 },
+      {
+        username: 'new-admin',
+        fullName: 'New Admin',
+        password: 'initial-password',
+        role: 'ADMIN',
+      },
+    );
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.tenant.create).toHaveBeenCalledWith({
+      data: {
+        name: expect.stringMatching(/^new-admin tenant /),
+        parentId: 1,
+      },
+      select: { id: true },
+    });
+    expect(prisma.user.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ tenantId: 42 }),
+      }),
+    );
+    expect(created).toMatchObject({ username: 'new-admin', role: 'ADMIN' });
   });
 });

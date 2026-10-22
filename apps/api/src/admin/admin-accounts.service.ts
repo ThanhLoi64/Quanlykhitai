@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import * as bcrypt from 'bcrypt';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -140,30 +141,39 @@ export class AdminAccountsService {
     const fullName = this.requiredText(body.fullName, 'Họ và tên', 150);
     const password = this.passwordValue(body.password);
     const role = this.roleValue(body.role);
-    const tenantId = this.tenantIdValue(body.tenantId);
     const expiresAt = this.dateValue(body.expiresAt);
     const mustChangePassword = body.mustChangePassword !== false;
 
     return this.prisma.runWithoutTenant(async () => {
-      const [existing, tenant] = await Promise.all([
-        this.prisma.user.findUnique({ where: { username }, select: { id: true } }),
-        this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { id: true } }),
-      ]);
+      const existing = await this.prisma.user.findUnique({
+        where: { username },
+        select: { id: true },
+      });
       if (existing) throw new ConflictException('Tên đăng nhập đã tồn tại');
-      if (!tenant) throw new BadRequestException('Đơn vị không tồn tại');
       this.validateExpiry(expiresAt);
 
-      const created = await this.prisma.user.create({
-        data: {
-          username,
-          fullName,
-          password: await bcrypt.hash(password, 10),
-          role: role as any,
-          tenantId,
-          expiresAt,
-          mustChangePassword,
-        },
-        select: { id: true, username: true, fullName: true, role: true },
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const created = await this.prisma.$transaction(async (transaction) => {
+        const tenant = await transaction.tenant.create({
+          data: {
+            name: `${username} tenant ${randomUUID()}`,
+            parentId: actor.tenantId,
+          },
+          select: { id: true },
+        });
+
+        return transaction.user.create({
+          data: {
+            username,
+            fullName,
+            password: hashedPassword,
+            role: role as any,
+            tenantId: tenant.id,
+            expiresAt,
+            mustChangePassword,
+          },
+          select: { id: true, username: true, fullName: true, role: true },
+        });
       });
       await this.audit(actor, 'Tạo tài khoản', `${created.username} (${role})`);
       return created;
