@@ -1,7 +1,7 @@
 {
   "name": "desktop",
   "private": true,
-  "version": "2.1.2",
+  "version": "2.1.5",
   "type": "module",
   "main": "electron/main.ts",
   "scripts": {
@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "dist": "npm run build && electron-builder"
   },
-  "dependencies": {
+  "devDependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^9.2.0",
@@ -31,9 +31,7 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.3.3",
-    "xlsx": "^0.18.5"
-  },
-  "devDependencies": {
+    "xlsx": "^0.18.5",
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.13.2",
     "@types/react": "^19.2.17",
@@ -54,7 +52,8 @@
   },
   "build": {
     "appId": "com.quanlykhitai.desktop",
-    "productName": "Quan Ly Khi Tai",
+    "productName": "Quản lý Vũ khí - trang bị",
+    "artifactName": "QuanLyVuKhiTrangBi-Setup-${version}.${ext}",
     "directories": {
       "output": "release"
     },
@@ -65,7 +64,8 @@
     ],
     "asar": true,
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "build/icon.ico"
     },
     "publish": {
       "provider": "github",
