@@ -553,7 +553,7 @@ export default function Inventory() {
         <Box
           sx={{
             height: 500,
-            bgcolor: "white",
+            bgcolor: "background.paper",
           }}
         >
           <DataGrid

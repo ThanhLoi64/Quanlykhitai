@@ -17,6 +17,7 @@ import { LogModule } from './log/log.module';
 import { AmmunitionModule } from './ammunition/ammunition.module';
 import { TenantContextInterceptor } from './prisma/tenant-context.interceptor';
 import { HealthController } from './health.controller';
+import { AdminModule } from './admin/admin.module';
 
 
 
@@ -33,7 +34,8 @@ import { HealthController } from './health.controller';
     WarehouseModule,
     RepairModule,
     LogModule,
-    AmmunitionModule
+    AmmunitionModule,
+    AdminModule,
   ],
 
   controllers: [HealthController],

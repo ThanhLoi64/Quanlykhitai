@@ -242,7 +242,7 @@ export default function Owner() {
       </div>
 
       <div className="mt-2 bg-white rounded-xl shadow overflow-hidden">
-        <Box sx={{ height: 550, bgcolor: "white", borderRadius: 2 }}>
+        <Box sx={{ height: 550, bgcolor: "background.paper", borderRadius: 2 }}>
           <DataGrid
             rows={rows}
             columns={columns}

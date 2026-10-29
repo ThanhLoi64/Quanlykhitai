@@ -86,7 +86,6 @@ export default function WeaponSearch() {
   return (
     <div className="space-y-6 p-6">
       <header>
-        <p className="text-sm font-semibold uppercase tracking-wider text-blue-600">Tra cứu tập trung</p>
         <h1 className="mt-2 text-3xl font-bold text-slate-800">Tìm kiếm vũ khí - khí tài</h1>
         <p className="mt-2 text-slate-500">Tìm theo tên khí tài, số hiệu hoặc quân nhân đang được biên chế.</p>
       </header>

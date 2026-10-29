@@ -26,7 +26,8 @@ import type { GridColDef } from "@mui/x-data-grid";
 import { useNavigate } from "react-router-dom";
 
 function isAmmunition(product: any) {
-  const text = `${product.name || ""} ${product.category?.name || ""}`.toLowerCase();
+  const text =
+    `${product.name || ""} ${product.category?.name || ""}`.toLowerCase();
   return /đạn|dan duoc|ammunition/.test(text);
 }
 
@@ -34,10 +35,16 @@ const categoryOrder = ["vũ khí", "trang bị", "khí tài", "đạn dược", 
 
 function sortCategories(items: any[]) {
   return [...items].sort((left, right) => {
-    const leftIndex = categoryOrder.indexOf(left.name.trim().toLocaleLowerCase("vi"));
-    const rightIndex = categoryOrder.indexOf(right.name.trim().toLocaleLowerCase("vi"));
-    return (leftIndex < 0 ? categoryOrder.length : leftIndex) -
-      (rightIndex < 0 ? categoryOrder.length : rightIndex);
+    const leftIndex = categoryOrder.indexOf(
+      left.name.trim().toLocaleLowerCase("vi"),
+    );
+    const rightIndex = categoryOrder.indexOf(
+      right.name.trim().toLocaleLowerCase("vi"),
+    );
+    return (
+      (leftIndex < 0 ? categoryOrder.length : leftIndex) -
+      (rightIndex < 0 ? categoryOrder.length : rightIndex)
+    );
   });
 }
 
@@ -86,7 +93,8 @@ export default function Products() {
 
       const ammunitionTotals = ammunitionRes.data.reduce(
         (totals: Record<number, number>, item: any) => {
-          totals[item.productId] = (totals[item.productId] || 0) + Number(item.quantity || 0);
+          totals[item.productId] =
+            (totals[item.productId] || 0) + Number(item.quantity || 0);
           return totals;
         },
         {},
@@ -104,7 +112,7 @@ export default function Products() {
       setSelectedCategory((current) =>
         orderedCategories.some((category: any) => category.id === current)
           ? current
-          : orderedCategories[0]?.id ?? null,
+          : (orderedCategories[0]?.id ?? null),
       );
     } catch (error) {
       toast.error("Không thể tải dữ liệu");
@@ -142,8 +150,7 @@ export default function Products() {
       origin: "",
       usageHistory: "",
       documents: "",
-      categoryId:
-        selectedCategory ?? 0,
+      categoryId: selectedCategory ?? 0,
     });
 
     setOpenModal(true);
@@ -229,7 +236,7 @@ export default function Products() {
 
       setIsSaving(true);
       loadingToast = toast.loading(
-        editId ? "Đang cập nhật khí tài..." : "Đang thêm khí tài..."
+        editId ? "Đang cập nhật khí tài..." : "Đang thêm khí tài...",
       );
 
       if (editId) {
@@ -255,7 +262,9 @@ export default function Products() {
       if (loadingToast) toast.dismiss(loadingToast);
       const message = error.response?.data?.message;
       toast.error(
-        Array.isArray(message) ? message.join("; ") : message || "Có lỗi xảy ra",
+        Array.isArray(message)
+          ? message.join("; ")
+          : message || "Có lỗi xảy ra",
       );
     } finally {
       setIsSaving(false);
@@ -282,7 +291,8 @@ export default function Products() {
             height: 48,
             objectFit: "cover",
             borderRadius: 8,
-            border: "1px solid #e2e8f0",
+            border: "1px solid",
+            borderColor: "var(--color-border)",
           }}
         />
       ),
@@ -298,25 +308,26 @@ export default function Products() {
     {
       field: "unit",
       headerName: "Đơn vị tính",
-      width: 120,
+      flex: 1,
+      minWidth: 140,
     },
 
     {
       field: "classification",
       headerName: "Phân cấp",
-      width: 150,
+      flex: 1,
     },
 
     {
       field: "quantity",
       headerName: "Số lượng trong kho",
-      width: 150,
+      flex: 1,
     },
 
     {
       field: "category",
       headerName: "Danh mục",
-      width: 170,
+      flex: 1,
 
       valueGetter: (_, row) => {
         return row.category?.name || "";
@@ -326,7 +337,8 @@ export default function Products() {
     {
       field: "action",
       headerName: "Thao tác",
-      width: 280,
+      flex: 1,
+      minWidth: 280,
       sortable: false,
 
       renderCell: (params) => (
@@ -400,11 +412,7 @@ export default function Products() {
           </Typography>
         </Box>
 
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={openCreate}
-        >
+        <Button variant="contained" startIcon={<Add />} onClick={openCreate}>
           Thêm vũ khí - khí tài
         </Button>
       </Box>
@@ -428,7 +436,7 @@ export default function Products() {
             {/* CÁC DANH MỤC */}
             {categories.map((category) => {
               const count = products.filter(
-                (product) => product.categoryId === category.id
+                (product) => product.categoryId === category.id,
               ).length;
 
               return (
@@ -480,9 +488,7 @@ export default function Products() {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>
-          {editId ? "Cập nhật vũ khí" : "Thêm vũ khí"}
-        </DialogTitle>
+        <DialogTitle>{editId ? "Cập nhật vũ khí" : "Thêm vũ khí"}</DialogTitle>
 
         <DialogContent>
           <Tabs
@@ -504,111 +510,122 @@ export default function Products() {
               gap: 2,
             }}
           >
-            {modalTab === "Thông tin chung" && <>
-            <input
-              className="border p-2 rounded"
-              placeholder="Tên vũ khí"
-              value={form.name}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  name: e.target.value,
-                })
-              }
-            />
+            {modalTab === "Thông tin chung" && (
+              <>
+                <input
+                  className="border p-2 rounded"
+                  placeholder="Tên vũ khí"
+                  value={form.name}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      name: e.target.value,
+                    })
+                  }
+                />
 
-            <input
-              className="border p-2 rounded"
-              placeholder="Đơn vị"
-              value={form.unit}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  unit: e.target.value,
-                })
-              }
-            />
+                <input
+                  className="border p-2 rounded"
+                  placeholder="Đơn vị"
+                  value={form.unit}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      unit: e.target.value,
+                    })
+                  }
+                />
 
-            <input
-              className="border p-2 rounded"
-              placeholder="Phân cấp"
-              value={form.classification}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  classification: e.target.value,
-                })
-              }
-            />
+                <input
+                  className="border p-2 rounded"
+                  placeholder="Phân cấp"
+                  value={form.classification}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      classification: e.target.value,
+                    })
+                  }
+                />
 
-            <select
-              className="border p-2 rounded"
-              value={form.categoryId}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  categoryId: Number(e.target.value),
-                })
-              }
-            >
-              <option value={0}>Chọn danh mục</option>
+                <select
+                  className="border p-2 rounded"
+                  value={form.categoryId}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      categoryId: Number(e.target.value),
+                    })
+                  }
+                >
+                  <option value={0}>Chọn danh mục</option>
 
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
 
-            <textarea
-              className="border p-2 rounded"
-              placeholder="Ghi chú"
-              value={form.note}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  note: e.target.value,
-                })
-              }
-            />
+                <textarea
+                  className="border p-2 rounded"
+                  placeholder="Ghi chú"
+                  value={form.note}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      note: e.target.value,
+                    })
+                  }
+                />
 
-            <input
-              className="border p-2 rounded"
-              placeholder="Xuất xứ"
-              value={form.origin}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  origin: e.target.value,
-                })
-              }
-            />
+                <input
+                  className="border p-2 rounded"
+                  placeholder="Xuất xứ"
+                  value={form.origin}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      origin: e.target.value,
+                    })
+                  }
+                />
 
-            {imagePreview && (
-              <img
-                src={imagePreview}
-                alt="Ảnh vũ khí hiện tại"
-                style={{ width: 160, height: 160, objectFit: "cover", borderRadius: 8 }}
-              />
+                {imagePreview && (
+                  <img
+                    src={imagePreview}
+                    alt="Ảnh vũ khí hiện tại"
+                    style={{
+                      width: 160,
+                      height: 160,
+                      objectFit: "cover",
+                      borderRadius: 8,
+                    }}
+                  />
+                )}
+
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] || null;
+                    setImageFile(file);
+                    setImagePreview(
+                      file ? URL.createObjectURL(file) : imagePreview,
+                    );
+                  }}
+                />
+              </>
             )}
-
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={(event) => {
-                const file = event.target.files?.[0] || null;
-                setImageFile(file);
-                setImagePreview(file ? URL.createObjectURL(file) : imagePreview);
-              }}
-            />
-            </>}
 
             {modalTab === "Lịch sử sử dụng" && (
               <textarea
                 className="border p-2 rounded min-h-40"
                 placeholder="Nhập lịch sử sử dụng, bảo quản, sửa chữa..."
                 value={form.usageHistory}
-                onChange={(e) => setForm({ ...form, usageHistory: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, usageHistory: e.target.value })
+                }
               />
             )}
 
@@ -617,22 +634,18 @@ export default function Products() {
                 className="border p-2 rounded min-h-40"
                 placeholder="Nhập tên tài liệu hoặc đường dẫn tài liệu, mỗi dòng một mục..."
                 value={form.documents}
-                onChange={(e) => setForm({ ...form, documents: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, documents: e.target.value })
+                }
               />
             )}
           </Box>
         </DialogContent>
 
         <DialogActions>
-          <Button onClick={() => setOpenModal(false)}>
-            Hủy
-          </Button>
+          <Button onClick={() => setOpenModal(false)}>Hủy</Button>
 
-          <Button
-            variant="contained"
-            onClick={saveProduct}
-            disabled={isSaving}
-          >
+          <Button variant="contained" onClick={saveProduct} disabled={isSaving}>
             {isSaving ? "Đang lưu..." : "Lưu"}
           </Button>
         </DialogActions>
@@ -642,20 +655,13 @@ export default function Products() {
           DELETE MODAL
       ========================= */}
 
-      <Dialog
-        open={deleteId !== null}
-        onClose={() => setDeleteId(null)}
-      >
+      <Dialog open={deleteId !== null} onClose={() => setDeleteId(null)}>
         <DialogTitle>Xóa khí tài</DialogTitle>
 
-        <DialogContent>
-          Bạn có chắc muốn xóa khí tài này?
-        </DialogContent>
+        <DialogContent>Bạn có chắc muốn xóa khí tài này?</DialogContent>
 
         <DialogActions>
-          <Button onClick={() => setDeleteId(null)}>
-            Hủy
-          </Button>
+          <Button onClick={() => setDeleteId(null)}>Hủy</Button>
 
           <Button
             color="error"

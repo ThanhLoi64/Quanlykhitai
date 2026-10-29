@@ -18,6 +18,7 @@ function createWindow() {
 
     width: 1200,
     height: 800,
+    icon: path.join(__dirname, "../dist/2.jpg"),
 
     webPreferences: {
 

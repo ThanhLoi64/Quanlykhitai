@@ -375,16 +375,16 @@ export default function Export() {
             ))}
           </div>
         </div>
-        <Box sx={{ height: 450, bgcolor: "white" }}>
+        <Box sx={{ height: 450, bgcolor: "background.paper" }}>
           <DataGrid rows={rows} columns={columns} pageSizeOptions={[10, 20, 50]} initialState={{ pagination: { paginationModel: { pageSize: 10 } } }} disableRowSelectionOnClick />
         </Box>
       </div> : <div className="overflow-hidden rounded-xl bg-white shadow">
-        <Box sx={{ height: 450, bgcolor: "white" }}>
+        <Box sx={{ height: 450, bgcolor: "background.paper" }}>
           <DataGrid rows={ammunitionRows} columns={ammunitionColumns} pageSizeOptions={[10, 20, 50]} initialState={{ pagination: { paginationModel: { pageSize: 10 } } }} disableRowSelectionOnClick />
         </Box>
       </div>}
       </> : <div className="overflow-hidden rounded-xl bg-white shadow">
-        <Box sx={{ height: 450, bgcolor: "white" }}>
+        <Box sx={{ height: 450, bgcolor: "background.paper" }}>
           <DataGrid rows={historyRows} columns={historyColumns} pageSizeOptions={[10, 20, 50]} initialState={{ pagination: { paginationModel: { pageSize: 10 } } }} disableRowSelectionOnClick />
         </Box>
       </div>}

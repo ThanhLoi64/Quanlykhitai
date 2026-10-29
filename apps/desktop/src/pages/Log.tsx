@@ -17,9 +17,11 @@ import {
 } from "@mui/material";
 import { Refresh, History, DeleteSweep } from "@mui/icons-material";
 import { toast } from "sonner";
+import { isAxiosError } from "axios";
+import { formatLogMessage, type ActivityLog } from "../utils/activityLog.ts";
 
 export default function Log() {
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
@@ -30,7 +32,7 @@ export default function Log() {
     try {
       setLoading(true);
       const res = await api.get("/logs");
-      setLogs(res.data);
+      setLogs(res.data as ActivityLog[]);
     } finally {
       setLoading(false);
     }
@@ -68,8 +70,13 @@ export default function Log() {
       setConfirmText("");
       setPassword("");
       await loadLogs();
-    } catch (error: any) {
-      const message = error?.response?.data?.message || "Xóa nhật ký thất bại.";
+    } catch (error: unknown) {
+      const responseMessage = isAxiosError<{ message?: string | string[] }>(error)
+        ? error.response?.data?.message
+        : undefined;
+      const message = Array.isArray(responseMessage)
+        ? responseMessage.join(", ")
+        : responseMessage || "Xóa nhật ký thất bại.";
       toast.error(message);
     } finally {
       setDeleting(false);
@@ -178,12 +185,12 @@ export default function Log() {
             <Typography color="text.secondary">Chưa có dữ liệu.</Typography>
           ) : (
             <div className="space-y-4">
-              {logs.map((log: any, index: number) => (
+              {logs.map((log, index) => (
                 <div key={log.id}>
                   <div className="flex gap-4">
                     <History
                       sx={{
-                        color: "#1976d2",
+                        color: "primary.main",
                         mt: 0.5,
                       }}
                     />
@@ -197,13 +204,8 @@ export default function Log() {
                         variant="body1"
                         sx={{ mt: 0.5, lineHeight: 1.8 }}
                       >
-                        <strong>
-                           Người dùng: {log.username || log.user?.username || "Không rõ"}
-                        </strong>{" "}
-                        <span className="font-semibold text-blue-600">
-                          {log.action?.toLowerCase()}
-                        </span>{" "}
-                        {log.detail}
+                        <strong>{log.username || log.user?.username || "Không rõ"}</strong>{" "}
+                        {formatLogMessage(log)}
                       </Typography>
                     </div>
                   </div>

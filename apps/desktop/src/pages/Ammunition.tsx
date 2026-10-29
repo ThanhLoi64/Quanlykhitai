@@ -118,12 +118,12 @@ export default function Ammunition() {
 
   const columns: GridColDef[] = [
     { field: "id", headerName: "ID", width: 75 },
-    { field: "productName", headerName: "Loại đạn", flex: 1.4, minWidth: 220 },
-    { field: "batch", headerName: "Lô", flex: 1, minWidth: 160 },
-    { field: "unit", headerName: "Đơn vị tính", width: 140 },
+    { field: "productName", headerName: "Loại đạn", flex: 1.4, minWidth: 150 },
+    { field: "batch", headerName: "Lô", flex: 1, minWidth: 100 },
+    { field: "unit", headerName: "Đơn vị tính", width: 100 },
     { field: "quantity", headerName: "Số lượng", width: 130 },
     { field: "productionYear", headerName: "Năm sản xuất", width: 150 },
-    { field: "warehouseName", headerName: "Đầu mối", flex: 1.1, minWidth: 180 },
+    { field: "warehouseName", headerName: "Đầu mối", flex: 1.1, minWidth: 100 },
     {
       field: "actions",
       headerName: "Thao tác",
@@ -159,7 +159,7 @@ export default function Ammunition() {
         <Button variant="contained" startIcon={<Add />} onClick={openCreate}>Thêm đạn dược</Button>
       </Box>
 
-      <Box sx={{ height: 560, bgcolor: "white", borderRadius: 2 }}>
+      <Box sx={{ height: 500, bgcolor: "background.paper", borderRadius: 2 }}>
         <DataGrid
           rows={rows}
           columns={columns}

@@ -10,6 +10,7 @@ import Products from "../pages/Products";
 import Categories from "../pages/Categories";
 import Log from "../pages/Log";
 import Layout from "../components/Layout";
+import AdminLayout from "../components/AdminLayout";
 import ProtectedRoute from "./ProtectedRoute";
 import ProductDetail from "../pages/ProductDetail";
 import Registration from "../pages/Registration";
@@ -22,6 +23,9 @@ import Information from "../pages/Infomation";
 import ChildAccounts from "../pages/ChildAccounts";
 import WeaponSearch from "../pages/WeaponSearch";
 import Ammunition from "../pages/Ammunition";
+import AdminPage from "../pages/AdminPage";
+import AdminAccounts from "../pages/AdminAccounts";
+import ChangePassword from "../pages/ChangePassword";
 
 
 
@@ -34,6 +38,8 @@ return (
     <Route path="/" element={<Login />} />
 
     <Route element={<ProtectedRoute />}>
+
+      <Route path="/change-password" element={<ChangePassword />} />
 
       <Route element={<Layout />}>
 
@@ -59,7 +65,11 @@ return (
         <Route path="/about" element={<Information />} />
         <Route path="/child-accounts" element={<ChildAccounts />} />
         <Route path="/weapon-search" element={<WeaponSearch />} />
+      </Route>
 
+      <Route element={<AdminLayout />}>
+        <Route path="/admin" element={<AdminPage />} />
+        <Route path="/admin/accounts" element={<AdminAccounts />} />
       </Route>
 
     </Route>
