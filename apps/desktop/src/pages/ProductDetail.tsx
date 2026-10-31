@@ -1,8 +1,42 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import api from "../api/api";
 import qbz95 from "../assets/img-weapons-qbz95.webp";
 import { ScanSearch } from "lucide-react";
+import { DataGrid, type GridColDef } from "@mui/x-data-grid";
+
+type StockDetail = {
+  id: number;
+  serialNumber?: string | null;
+  accessory?: string | null;
+  equipment?: string | null;
+  militaryEquipment?: string | null;
+  importOrder?: string | null;
+  warehouseId?: number | null;
+  warehouse?: { name?: string | null } | null;
+};
+
+const stockColumns: GridColDef<StockDetail>[] = [
+  { field: "id", headerName: "STT", width: 80 },
+  { field: "serialNumber", headerName: "Số hiệu", minWidth: 140, flex: 1 },
+  {
+    field: "warehouse",
+    headerName: "Kho",
+    minWidth: 150,
+    flex: 1,
+    valueGetter: (_, row) => row.warehouse?.name || row.warehouseId || "—",
+  },
+  { field: "accessory", headerName: "Phụ kiện", minWidth: 150, flex: 1 },
+  { field: "equipment", headerName: "Trang bị kèm theo", minWidth: 170, flex: 1 },
+  {
+    field: "militaryEquipment",
+    headerName: "Quân trang",
+    minWidth: 150,
+    flex: 1,
+  },
+  { field: "importOrder", headerName: "Lệnh nhập", minWidth: 130, flex: 1 },
+];
+
 function InfoBox({ label, value }: { label: string; value: any }) {
   return (
     <div className="rounded-lg border border-slate-200 p-3 bg-slate-50">
@@ -17,12 +51,22 @@ export default function ProductDetail() {
   const [isImageZoomed, setIsImageZoomed] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [product, setProduct] = useState<any>();
+  const [product, setProduct] = useState<any>(() => {
+    const routedProduct = (
+      location.state as { product?: { id?: number } } | null
+    )?.product;
+    return routedProduct?.id === Number(id) ? routedProduct : undefined;
+  });
 
   useEffect(() => {
+    const routedProduct = (
+      location.state as { product?: { id?: number } } | null
+    )?.product;
+    if (routedProduct?.id === Number(id)) return;
     load();
-  }, []);
+  }, [id, location.state]);
 
   async function load() {
     const res = await api.get(`/products/${id}`);
@@ -218,7 +262,7 @@ export default function ProductDetail() {
       {/* TAB */}
 
       <div className="flex border-b overflow-x-auto">
-        {["Thông tin", "Danh sách Biên chế", "Lịch sử", "Tính năng chiến kỹ thuật"].map(
+        {["Thông tin", "Danh sách Biên chế", "Trong kho", "Lịch sử", "Tính năng chiến kỹ thuật"].map(
           (tab) => (
             <button
               key={tab}
@@ -373,6 +417,32 @@ gap-4
                     ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+        {activeTab === "Trong kho" && (
+          <div>
+            <h2 className="mb-5 text-xl font-bold">Danh sách súng còn trong kho</h2>
+            <div className="h-[min(65vh,600px)] min-h-80 w-full">
+              <DataGrid
+                rows={(product.details || []).filter(
+                  (detail: StockDetail) =>
+                    detail.status === "IN_STOCK" ||
+                    detail.status === "AVAILABLE",
+                )}
+                columns={stockColumns}
+                getRowId={(row) => row.id}
+                pageSizeOptions={[5, 10, 25, 50]}
+                initialState={{
+                  pagination: {
+                    paginationModel: { pageSize: 10, page: 0 },
+                  },
+                }}
+                disableRowSelectionOnClick
+                localeText={{
+                  noRowsLabel: "Không có súng đang ở trong kho",
+                }}
+              />
             </div>
           </div>
         )}

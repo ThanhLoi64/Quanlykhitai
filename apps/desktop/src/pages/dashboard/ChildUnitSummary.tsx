@@ -1,133 +1,114 @@
-import qbz95 from "../../assets/img-weapons-qbz95.webp";
 import type { ChildProduct, ChildSummary } from "./types";
 
 type Props = {
   children: ChildSummary[];
-  selectedTenantId: number | null;
-  onSelectTenant: (tenantId: number) => void;
+  category: string;
 };
 
-type GroupedProducts = Record<
-  string,
-  {
-    category: string;
-    total: number;
-    products: { name: string; quantity: number; image?: string | null }[];
+function matchesCategory(product: ChildProduct, selectedCategory: string) {
+  const category = product.category?.name?.trim().toLocaleLowerCase("vi") || "";
+  const name = product.name.trim().toLocaleLowerCase("vi");
+  const selected = selectedCategory.trim().toLocaleLowerCase("vi");
+
+  if (selected === "tổng khí tài") return true;
+  if (selected.includes("đạn")) {
+    return /đạn|dan duoc|ammunition/.test(`${category} ${name}`);
   }
->;
 
-function groupProducts(products: ChildProduct[]) {
-  const grouped: GroupedProducts = {};
-
-  products.forEach((product) => {
-    const categoryName = product.category?.name || "Khác";
-
-    if (!grouped[categoryName]) {
-      grouped[categoryName] = {
-        category: categoryName,
-        total: 0,
-        products: [],
-      };
-    }
-
-    const quantity = product.details.length;
-    grouped[categoryName].products.push({
-      name: product.name,
-      quantity,
-      image: product.image || null,
-    });
-    grouped[categoryName].total += quantity;
-  });
-
-  return Object.values(grouped);
+  return category === selected || category.includes(selected);
 }
 
-export default function ChildUnitSummary({
-  children,
-  selectedTenantId,
-  onSelectTenant,
-}: Props) {
-  const activeChild =
-    children.find((child) => child.tenantId === selectedTenantId) || children[0];
-
-  if (children.length === 0 || !activeChild) return null;
-
-  const categories = groupProducts(activeChild.products);
+export default function ChildUnitSummary({ children, category }: Props) {
+  if (children.length === 0) {
+    return (
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-xl font-bold text-slate-800">{category} theo đơn vị</h2>
+        <p className="mt-3 text-sm text-slate-500">
+          Không tìm thấy tài khoản con thuộc các đơn vị hiển thị.
+        </p>
+      </section>
+    );
+  }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border p-6">
-      <h2 className="text-xl font-bold mb-6">
-        Tổng quan vũ khí - khí tài các đơn vị
+    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 className="text-xl font-bold text-slate-800">
+        {category} theo đơn vị
       </h2>
-      <div className="flex gap-2 overflow-x-auto border-b border-slate-200">
-        {children.map((child) => (
-          <button
-            key={child.tenantId}
-            type="button"
-            onClick={() => onSelectTenant(child.tenantId)}
-            className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${
-              selectedTenantId === child.tenantId
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700"
-            }`}
-          >
-            <h3 className="font-bold text-slate-800">
-              {child.accounts.map((account) => account.username).join(", ")}
-            </h3>
-          </button>
-        ))}
-      </div>
-      <div className="mt-5 rounded-xl border border-slate-200 p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="font-bold text-slate-800 text-2xl">
-              {activeChild.accounts
-                .map((account) => account.username)
-                .join(", ")}
-            </h1>
-          </div>
-          <span className="text-2xl font-bold text-blue-600">
-            {activeChild.totalWeapons}
-          </span>
-        </div>
-        <p className="mt-3 text-sm text-slate-500">
-          Chi tiết số lượng vũ khí
-        </p>
-        <div className="mt-3 space-y-4">
-          {categories.map((category) => (
-            <div key={category.category}>
-              <div className="mb-2 flex items-center justify-between border-b border-slate-100 pb-2">
-                <span className="text-sm font-semibold text-slate-700">
-                  {category.category}
-                </span>
-                <span className="text-sm font-bold text-blue-600">
-                  {category.total}
+      <div className="mt-5 grid gap-4 lg:grid-cols-2">
+        {children.map((child) => {
+          const products = child.products.filter((product) =>
+            matchesCategory(product, category),
+          );
+          const total = products.reduce(
+            (sum, product) => sum + product.details.length,
+            0,
+          );
+          const accountNames = child.accounts
+            .map((account) => account.username)
+            .join(", ");
+
+          return (
+            <article
+              key={child.tenantId}
+              className="rounded-xl border border-slate-200 bg-slate-50/70 p-5"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <h3 className="truncate font-bold text-slate-800">
+                    {child.tenantName || accountNames || "Đơn vị"}
+                  </h3>
+                  {accountNames && (
+                    <p className="mt-1 truncate text-sm text-slate-500">
+                      Tài khoản: {accountNames}
+                    </p>
+                  )}
+                </div>
+                <span className="shrink-0 rounded-full bg-blue-50 px-3 py-1 text-sm font-bold text-blue-700">
+                  {total}
                 </span>
               </div>
-              <div className="space-y-2">
-                {category.products.map((product) => (
-                  <div
-                    key={product.name}
-                    className="flex items-center justify-between gap-3 text-sm"
-                  >
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={product.image || qbz95}
-                        alt={product.name || "Ảnh vũ khí"}
-                        className="h-8 w-12 rounded border border-slate-200 object-cover"
-                      />
-                      <span className="text-slate-600">{product.name}</span>
-                    </div>
-                    <span className="font-semibold text-slate-800">
-                      {product.quantity}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+              {products.length > 0 ? (
+                <ul className="mt-4 divide-y divide-slate-200">
+                  {products.map((product, index) => (
+                    <li
+                      key={`${product.category?.name}-${product.name}-${index}`}
+                      className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        {product.image ? (
+                          <img
+                            src={product.image}
+                            alt=""
+                            className="h-10 w-12 shrink-0 rounded-lg border border-slate-200 bg-white object-cover"
+                          />
+                        ) : (
+                          <div className="h-10 w-12 shrink-0 rounded-lg bg-slate-200" />
+                        )}
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-slate-700">
+                            {product.name}
+                          </p>
+                          <p className="truncate text-xs text-slate-500">
+                            {product.category?.name || category}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="shrink-0 text-sm font-semibold text-slate-800">
+                        {product.details.length}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-4 rounded-lg bg-white px-3 py-4 text-sm text-slate-500">
+                  Đơn vị chưa có sản phẩm thuộc mục này.
+                </p>
+              )}
+            </article>
+          );
+        })}
       </div>
-    </div>
+    </section>
   );
 }

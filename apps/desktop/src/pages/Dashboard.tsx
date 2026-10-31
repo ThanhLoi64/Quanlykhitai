@@ -1,14 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowUp } from "lucide-react";
-import DashboardActivity from "./dashboard/DashboardActivity";
-import DashboardRepairTracking from "./dashboard/DashboardRepairTracking";
 import DashboardRecentExports from "./dashboard/DashboardRecentExports";
-import AmmunitionSummary from "./dashboard/AmmunitionSummary";
-import ChildUnitSummary from "./dashboard/ChildUnitSummary";
 import DashboardStats from "./dashboard/DashboardStats";
-import DashboardWelcome from "./dashboard/DashboardWelcome";
-import DashboardWeaponCommission from "./dashboard/DashboardWeaponCommission";
-import WeaponSummary from "./dashboard/WeaponSummary";
 import { useDashboardData } from "./dashboard/useDashboardData";
 
 export default function Dashboard() {
@@ -32,11 +25,10 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="space-y-8 pt-2">
-      <DashboardWelcome />
+    <div className="space-y-8 pt-4">
       <DashboardStats stats={dashboard.stats} />
-      <DashboardWeaponCommission categories={dashboard.weaponSummary} />
-      <WeaponSummary
+      {/* <DashboardWeaponCommission categories={dashboard.weaponSummary} /> */}
+      {/* <WeaponSummary
         categories={dashboard.weaponSummary}
         selectedCategory={dashboard.selectedWeaponCategory}
         onSelectCategory={dashboard.setSelectedWeaponCategory}
@@ -46,17 +38,17 @@ export default function Dashboard() {
         types={dashboard.ammunitionTypes}
         selectedType={dashboard.selectedAmmunitionType}
         onSelectType={dashboard.setSelectedAmmunitionType}
-      />
+      /> */}
          <DashboardRecentExports />
-      <ChildUnitSummary
+      {/* <ChildUnitSummary
         children={dashboard.childSummary}
         selectedTenantId={dashboard.selectedChildTenantId}
         onSelectTenant={dashboard.setSelectedChildTenantId}
-      />
-      <div className="grid grid-cols-2 gap-6">
+      /> */}
+      {/* <div className="grid grid-cols-2 gap-6">
         <DashboardActivity />
         <DashboardRepairTracking />
-      </div>
+      </div> */}
       <div className="text-center text-[0.7rem] text-slate-500">
         <span>@ 2026 Quan Ly Khi Tai. All rights reserved.</span>
       </div>

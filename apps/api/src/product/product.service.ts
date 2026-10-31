@@ -27,7 +27,7 @@ export class ProductService {
 
       include:{
         category:true,
-        details:true
+        details: { include: { owner: true, warehouse: true } }
       }
 
     });
@@ -49,6 +49,7 @@ export class ProductService {
       details: {
         include: {
           owner: true,
+          warehouse: true,
         },
       },
     },

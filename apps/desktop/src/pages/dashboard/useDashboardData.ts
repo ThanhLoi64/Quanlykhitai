@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Package } from "lucide-react";
+import { toast } from "sonner";
 import api from "../../api/api";
 import type {
   AmmunitionItem,
@@ -17,10 +18,8 @@ type ProductPayload = {
   image?: string | null;
 };
 
-function isAmmunition(product: ProductPayload) {
-  const text =
-    `${product.name || ""} ${product.category?.name || ""}`.toLowerCase();
-  return /đạn|dan duoc|ammunition/.test(text);
+function isAmmunition(name: string, category?: string | null) {
+  return /đạn|dan duoc|ammunition/i.test(`${name} ${category || ""}`);
 }
 
 export function useDashboardData() {
@@ -47,16 +46,28 @@ export function useDashboardData() {
           (current) => current ?? res.data[0]?.tenantId ?? null,
         );
       })
-      .catch(() => setChildSummary([]));
+      .catch(() => {
+        setChildSummary([]);
+        toast.error("Không thể tải danh sách tài khoản con");
+      });
 
     api.get("/products").then((res) => {
       const data = res.data as ProductPayload[];
-      setProducts(data.length);
+      setProducts(
+        data.reduce(
+          (total, product) =>
+            total +
+            (isAmmunition(product.name, product.category?.name)
+              ? 0
+              : product.details.length),
+          0,
+        ),
+      );
 
       const grouped: Record<string, WeaponCategory> = {};
 
       data.forEach((product) => {
-        if (isAmmunition(product)) return;
+        if (isAmmunition(product.name, product.category?.name)) return;
 
         const categoryName = product.category?.name || "Khác";
 
@@ -114,12 +125,11 @@ export function useDashboardData() {
   }, []);
 
   const totalAmmunition = useMemo(
-    () =>
-      ammunition.reduce(
-        (sum, item) => sum + (Number(item.quantity) || 0),
-        0,
-      ),
-    [ammunition],
+    () => [
+      ...ammunition,
+      ...childSummary.flatMap((child) => child.ammunition || []),
+    ].reduce((sum, item) => sum + (Number(item.quantity) || 0), 0),
+    [ammunition, childSummary],
   );
 
   const ammunitionTypes = useMemo<AmmunitionType[]>(() => {
@@ -137,10 +147,37 @@ export function useDashboardData() {
 
   const stats = useMemo<DashboardStat[]>(() => {
     const palette = ["blue", "green", "indigo", "emerald", "orange"];
+    const categoryTotals = new Map<string, { title: string; total: number }>();
+
+    weaponSummary.forEach((category) => {
+      const key = category.category.trim().toLocaleLowerCase("vi");
+      const existing = categoryTotals.get(key);
+      categoryTotals.set(key, {
+        title: existing?.title || category.category,
+        total: (existing?.total || 0) + category.total,
+      });
+    });
+
+    childSummary.forEach((child) => {
+      child.products.forEach((product) => {
+        const categoryName = product.category?.name || "Khác";
+        if (isAmmunition(product.name, categoryName)) return;
+
+        const key = categoryName.trim().toLocaleLowerCase("vi");
+        const existing = categoryTotals.get(key);
+        categoryTotals.set(key, {
+          title: existing?.title || categoryName,
+          total:
+            (existing?.total || 0) +
+            (Array.isArray(product.details) ? product.details.length : 0),
+        });
+      });
+    });
+
     const categoryCards =
-      weaponSummary.length > 0
-        ? weaponSummary.map((category, index) => ({
-            title: category.category,
+      categoryTotals.size > 0
+        ? Array.from(categoryTotals.values()).map((category, index) => ({
+            title: category.title,
             value: category.total,
             path: "/products",
             icon: Package,
@@ -149,7 +186,26 @@ export function useDashboardData() {
         : [
             {
               title: "Tổng khí tài",
-              value: products,
+              value:
+                products +
+                childSummary.reduce(
+                  (sum, child) =>
+                    sum +
+                    child.products.reduce(
+                      (productSum, product) =>
+                        productSum +
+                        (isAmmunition(
+                          product.name,
+                          product.category?.name,
+                        )
+                          ? 0
+                          : Array.isArray(product.details)
+                            ? product.details.length
+                            : 0),
+                      0,
+                    ),
+                  0,
+                ),
               path: "/products",
               icon: Package,
               color: "blue",
@@ -191,7 +247,7 @@ export function useDashboardData() {
           ),
       ),
     ];
-  }, [weaponSummary, products, totalAmmunition]);
+  }, [weaponSummary, childSummary, products, totalAmmunition]);
 
   return {
     weaponSummary,

@@ -235,9 +235,11 @@ export default function Layout() {
           <div
             className={`flex items-center ${collapsed ? "justify-center" : "gap-3"}`}
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-300 text-slate-950 shadow-lg shadow-cyan-300/20">
-              <ShieldCheck size={22} strokeWidth={2.4} />
-            </div>
+            <img
+              src="/2.jpg"
+              alt=""
+              className="h-15 w-15 shrink-0 rounded-xl object-cover shadow-lg"
+            />
             {!collapsed && (
               <div className="min-w-0">
                 <p className="theme-chrome-accent mt-0.5 text-[10px] font-semibold uppercase tracking-[0.18em]">

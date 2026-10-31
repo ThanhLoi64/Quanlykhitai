@@ -110,30 +110,22 @@ export default function Login() {
       </div>
       <div className="relative z-10 flex w-full items-center justify-center bg-white px-4 py-6 sm:px-6 md:w-[42%] md:px-8 lg:px-10">
         <div className="w-full max-w-md">
-          <div className="mb-10 flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg">
-              <Shield className="h-5 w-5" />
-            </div>
+          <div className="mb-10 gap-3 items-center justify-center rounded-2xl p-4 sm:flex">
+           <img
+              src="/2.jpg"
+              alt=""
+              className="h-20 w-20 shrink-0 rounded-2xl object-cover shadow-lg"
+            />
 
             <div>
-              <p className="text-base font-extrabold tracking-[0.02em] text-blue-600">
+              <h1 className="text-2xl font-extrabold tracking-[0.02em] text-blue-600">
                 QUẢN LÝ KHÍ TÀI
-              </p>
+              </h1>
               <p className="mt-0.5 text-[11px] tracking-[0.5px] text-slate-500">
                 HỆ THỐNG QUẢN LÝ TRANG BỊ
               </p>
             </div>
           </div>
-
-          <div className="mb-8">
-            <h1 className="text-3xl font-extrabold tracking-[-0.04em] text-slate-900 md:text-[2.1rem]">
-              Chào mừng trở lại
-            </h1>
-            <p className="mt-2 text-[15px] text-slate-500">
-              Đăng nhập vào hệ thống để tiếp tục.
-            </p>
-          </div>
-
           <div className="space-y-5">
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-slate-700">

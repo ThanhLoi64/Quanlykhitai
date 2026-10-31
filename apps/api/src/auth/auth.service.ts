@@ -144,13 +144,19 @@ async getChildWeaponSummary(user: { tenantId: number; role: string }) {
     const tenants = await this.prisma.$queryRaw<
       Array<{ id: number; name: string; parentId: number | null; displayOrder: number }>
     >`SELECT "id", "name", "parentId", "displayOrder" FROM "Tenant"`;
-    const [childUsers, products] = await Promise.all([
+    const [childUsers, products, ammunition] = await Promise.all([
       this.prisma.user.findMany({
         where: { role: { in: roles as any } },
         select: { username: true, fullName: true, role: true, tenantId: true },
       }),
       this.prisma.product.findMany({
-        include: { category: true, details: true },
+        include: {
+          category: true,
+          details: { include: { owner: true, warehouse: true } },
+        },
+      }),
+      this.prisma.ammunition.findMany({
+        include: { product: { include: { category: true } } },
       }),
     ]);
 
@@ -172,6 +178,7 @@ async getChildWeaponSummary(user: { tenantId: number; role: string }) {
           .filter((item) => item.tenantId === tenantId)
           .reduce((total, item) => total + item.details.length, 0),
         products: products.filter((item) => item.tenantId === tenantId),
+        ammunition: ammunition.filter((item) => item.tenantId === tenantId),
       };
     });
   });

@@ -6,6 +6,7 @@ import {
 
 import Login from "../pages/Login";
 import Dashboard from "../pages/Dashboard";
+import DashboardCategory from "../pages/DashboardCategory";
 import Products from "../pages/Products";
 import Categories from "../pages/Categories";
 import Log from "../pages/Log";
@@ -44,6 +45,7 @@ return (
       <Route element={<Layout />}>
 
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard/category" element={<DashboardCategory />} />
 
         <Route path="/products" element={<Products />} />
 

@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import type { DashboardStat } from "./types";
 
 const colorMap: Record<string, { bg: string; icon: string; number: string; line: string }> = {
@@ -34,37 +34,70 @@ const colorMap: Record<string, { bg: string; icon: string; number: string; line:
   },
 };
 
-export default function DashboardStats({ stats }: { stats: DashboardStat[] }) {
+const statImages = [
+  { keywords: ["vũ khí", "súng"], src: "/images/sung.jpg" },
+  { keywords: ["trang bị", "balo"], src: "/images/balo.jpg" },
+  { keywords: ["khí tài"], src: "/images/khitai.jpg" },
+  { keywords: ["đạn", "ammunition"], src: "/images/dan.jpg" },
+  { keywords: ["quân cụ"], src: "/images/kim.png" },
+];
+
+export default function DashboardStats({
+  stats,
+}: {
+  stats: DashboardStat[];
+}) {
+  const navigate = useNavigate();
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
       {stats.map((item, index) => {
         const Icon = item.icon;
         const colors = colorMap[item.color] || colorMap.blue;
+        const normalizedTitle = item.title.trim().toLocaleLowerCase("vi");
+        const image =
+          statImages.find(({ keywords }) =>
+            keywords.some((keyword) => normalizedTitle.includes(keyword)),
+          )?.src ?? statImages[index]?.src ?? "/images/sung.jpg";
 
         return (
-          <Link key={`${item.path}-${item.title}-${index}`} to={item.path}>
-            <div className="group relative overflow-hidden bg-white rounded-2xl border shadow-sm p-6 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-              <div
-                className={`absolute top-0 left-0 h-1 w-full ${colors.line}`}
+          <button
+            key={`${item.path}-${item.title}-${index}`}
+            type="button"
+            onClick={() =>
+              navigate(`/dashboard/category?category=${encodeURIComponent(item.title)}`)
+            }
+            className="group overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+          >
+            <div className="relative h-40 overflow-hidden bg-slate-100">
+              <img
+                src={image}
+                alt=""
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-sm text-slate-500 font-medium">
-                    {item.title}
-                  </p>
-                  <h2 className={`text-4xl font-bold mt-3 ${colors.number}`}>
-                    {item.value}
-                  </h2>
-                  <p className="text-xs text-slate-400 mt-2" />
-                </div>
-                <div
-                  className={`${colors.bg} p-4 rounded-2xl group-hover:scale-110 transition-transform duration-300`}
-                >
-                  <Icon size={32} className={colors.icon} />
-                </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/25 via-transparent to-transparent" />
+              <div
+                className={`${colors.bg} absolute right-4 top-4 rounded-xl p-3 shadow-md`}
+              >
+                <Icon size={24} className={colors.icon} />
               </div>
             </div>
-          </Link>
+            <div className="p-5">
+              <p className="text-sm font-semibold text-slate-500">
+                {item.title}
+              </p>
+              <div className="mt-2 flex items-end justify-between">
+                <span
+                  className={`text-4xl font-bold tracking-tight ${colors.number}`}
+                >
+                  {item.value}
+                </span>
+                <div
+                  className={`${colors.line} mb-2 h-1.5 w-12 rounded-full transition-all duration-300 group-hover:w-20`}
+                />
+              </div>
+            </div>
+          </button>
         );
       })}
     </div>
